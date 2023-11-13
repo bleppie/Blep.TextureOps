@@ -1,0 +1,92 @@
+#include "TextureCommon.hlsl"
+#pragma kernel TestIndex
+#pragma kernel TestLoad
+#pragma kernel TestLoadOffset
+#pragma kernel TestLoadOffsetClamped
+#pragma kernel TestIndexMinimal
+#pragma kernel TestLoadMinimal
+#pragma kernel TestLoadOffsetMinimal
+
+Texture2D<float4> SrcA;
+RWTexture2D<float4> Dst;
+
+inline bool InRange1(uint2 xy) {
+  return all(xy > uint2(0, 0) && xy < (TextureSize - uint2(1,1)));
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void TestIndexMinimal(uint3 xyz : SV_DispatchThreadID) {
+  Dst[xyz.xy] = SrcA[xyz.xy + int2(1, 1)];
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void TestLoadMinimal(uint3 xyz : SV_DispatchThreadID) {
+  Dst[xyz.xy] = SrcA.Load(xyz + int3(1, 1, 0));
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void TestLoadOffsetMinimal(uint3 xyz : SV_DispatchThreadID) {
+  Dst[xyz.xy] = SrcA.Load(xyz, int2(1, 1));
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void TestIndex(uint2 xy : SV_DispatchThreadID) {
+  Dst[xy] = (SrcA[xy + int2(-1, -1)] +
+             SrcA[xy + int2( 0, -1)] +
+             SrcA[xy + int2( 1, -1)] +
+             SrcA[xy + int2(-1,  0)] +
+             SrcA[xy + int2( 0,  0)] +
+             SrcA[xy + int2( 1,  0)] +
+             SrcA[xy + int2(-1,  1)] +
+             SrcA[xy + int2( 0,  1)] +
+             SrcA[xy + int2( 1,  1)]) / 9.0f;
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void TestLoad(uint2 xy : SV_DispatchThreadID) {
+  uint3 xyz = uint3(xy, 0);
+  Dst[xy] = (SrcA.Load(xyz + int3(-1, -1, 0)) +
+             SrcA.Load(xyz + int3( 0, -1, 0)) +
+             SrcA.Load(xyz + int3( 1, -1, 0)) +
+             SrcA.Load(xyz + int3(-1,  0, 0)) +
+             SrcA.Load(xyz + int3( 0,  0, 0)) +
+             SrcA.Load(xyz + int3( 1,  0, 0)) +
+             SrcA.Load(xyz + int3(-1,  1, 0)) +
+             SrcA.Load(xyz + int3( 0,  1, 0)) +
+             SrcA.Load(xyz + int3( 1,  1, 0))) / 9.0f;
+}
+
+// This doesn't work on Metal!
+[numthreads(THREADSX, THREADSY, 1)]
+void TestLoadOffset(uint2 xy : SV_DispatchThreadID) {
+  uint3 xyz = uint3(xy, 0);
+  Dst[xy] = (SrcA.Load(xyz, int2(-1, -1)) +
+             SrcA.Load(xyz, int2( 0, -1)) +
+             SrcA.Load(xyz, int2( 1, -1)) +
+             SrcA.Load(xyz, int2(-1,  0)) +
+             SrcA.Load(xyz, int2( 0,  0)) +
+             SrcA.Load(xyz, int2( 1,  0)) +
+             SrcA.Load(xyz, int2(-1,  1)) +
+             SrcA.Load(xyz, int2( 0,  1)) +
+             SrcA.Load(xyz, int2( 1,  1))) / 9.0f;
+}
+
+// This doesn't work on Metal!
+[numthreads(THREADSX, THREADSY, 1)]
+void TestLoadOffsetClamped(uint2 xy : SV_DispatchThreadID) {
+  uint3 xyz = uint3(xy, 0);
+  bool2 prevInRange = xy > 0;
+  bool2 nextInRange = xy < (TextureSize - 1);
+
+  Dst[xy] = (all(prevInRange)                         ? SrcA.Load(xyz, int2(-1, -1)) : 0 +
+             prevInRange.y                            ? SrcA.Load(xyz, int2( 0, -1)) : 0 +
+             all(bool2(nextInRange.x, prevInRange.y)) ? SrcA.Load(xyz, int2( 1, -1)) : 0 +
+             prevInRange.x                            ? SrcA.Load(xyz, int2(-1,  0)) : 0 +
+             SrcA.Load(xyz, int2( 0,  0)) +
+             nextInRange.x                            ? SrcA.Load(xyz, int2( 1,  0)) : 0 +
+             all(bool2(prevInRange.x, nextInRange.y)) ? SrcA.Load(xyz, int2(-1,  1)) : 0 +
+             nextInRange.y                            ? SrcA.Load(xyz, int2( 0,  1)) : 0 +
+             all(nextInRange)                         ? SrcA.Load(xyz, int2( 1,  1)) : 0)
+    / 9.0f;
+
+}

@@ -1,0 +1,13 @@
+{
+    "name": "com.blep.textureops",
+    "version": "1.0.0",
+    "displayName": "Blep.TextureOps",
+    "description": "Texture operations using compute shaders.",
+    "samples": [
+        {
+            "displayName": "Sample",
+            "description": "Examples of every op in the package.",
+            "path": "Samples~/Sample"
+        }
+    ]
+}
