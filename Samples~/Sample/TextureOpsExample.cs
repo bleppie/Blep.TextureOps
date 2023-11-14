@@ -10,6 +10,9 @@ public class TextureOpsExample : MonoBehaviour {
     public Texture2D gradient;
     public RenderTexture dst;
 
+    [Range(-4, 4)]
+    public float contrast;
+
     public IEnumerator Start() {
         var wait = new WaitForSeconds(1);
 
@@ -107,6 +110,9 @@ public class TextureOpsExample : MonoBehaviour {
             yield return wait;
 
             TextureIP.GrayscaleGamma(src, dst);
+            yield return wait;
+
+            TextureIP.Contrast(dst, dst, -0.5f);
             yield return wait;
 
             TextureIP.Threshold(dst, new Vector4(0.3f, 0.3f, 0.3f, 0.0f));

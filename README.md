@@ -60,6 +60,7 @@ Supported Operations
 * ConvertHSV2RGB
 * Swizzle
 * Lookup using a pallete
+* Contrast adjustment
 
 #### Geometric
 * FlipHorizontal
@@ -100,8 +101,8 @@ Known Limitations
 
 * Does absolutely no parameter checking, for example making sure that the
   dimensions of the images in a binary operation are the same size.
-* The Math operations do not saturate, so they should be used either with float
-  textures or carefully.
+* Unless specified, Math operations do not saturate, so they should be used
+  either with high-range-count textures (float, int) or carefully.
 
 License
 -------

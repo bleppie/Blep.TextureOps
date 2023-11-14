@@ -8,7 +8,7 @@
 #pragma kernel MultiplyC
 #pragma kernel Multiply
 #pragma kernel MultiplyCAddC
-#pragma kernel MultiplyAddC
+#pragma kernel MultiplyCAddCSat
 #pragma kernel Clamp
 #pragma kernel Saturate
 
@@ -87,9 +87,9 @@ void MultiplyCAddC(uint2 xy : SV_DispatchThreadID) {
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
-void MultiplyAddC(uint2 xy : SV_DispatchThreadID) {
+void MultiplyCAddCSat(uint2 xy : SV_DispatchThreadID) {
 	if (InRange(xy)) {
-		Dst[xy] = SrcA[xy] * SrcB[xy] + ScalarB;
+		Dst[xy] = saturate(SrcA[xy] * ScalarA + ScalarB);
 	}
 }
 

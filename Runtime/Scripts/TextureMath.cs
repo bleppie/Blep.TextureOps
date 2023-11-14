@@ -72,12 +72,16 @@ public static class TextureMath {
 
 
     public static void MultiplyAdd(Texture src, RenderTexture dst,
-                                   Vector4 scale, Vector4 offset) =>
-				compute.UnaryOp("MultiplyCAddC", src, dst, scale, offset);
+                                   Vector4 scale, Vector4 offset, bool saturate=false) {
+        if (saturate)
+            compute.UnaryOp("MultiplyCAddCSat", src, dst, scale, offset);
+        else
+            compute.UnaryOp("MultiplyCAddC", src, dst, scale, offset);
+    }
 
     public static void MultiplyAdd(RenderTexture srcDst,
-                                   Vector4 scale, Vector4 offset) =>
-        MultiplyAdd(srcDst, srcDst, scale, offset);
+                                   Vector4 scale, Vector4 offset, bool saturate=false) =>
+        MultiplyAdd(srcDst, srcDst, scale, offset, saturate);
 
 
     public static void Clamp(Texture src, RenderTexture dst, Vector4 min, Vector4 max) =>

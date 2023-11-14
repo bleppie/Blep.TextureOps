@@ -37,7 +37,6 @@ public static class TextureIP {
 		public static void GrayscaleGamma(RenderTexture srcDst) =>
         GrayscaleGamma(srcDst, srcDst);
 
-
     public static void Threshold(Texture src, RenderTexture dst, Vector4 threshold) =>
         compute.UnaryOp("Threshold", src, dst, threshold);
 
@@ -88,6 +87,20 @@ public static class TextureIP {
 
     public static void Lookup(RenderTexture srcDst, Texture pallete) =>
         Lookup(srcDst, srcDst, pallete);
+
+
+		public static void Contrast(Texture src, RenderTexture dst, float amount) {
+        // Map negative values to 1/(-amount+1) and positive to amount+1
+        amount = amount < 0 ? (1.0f / (1.0f - amount)) : 1.0f + amount;
+
+        // (x - 0.5) * amount + 0.5 := x * amount + 0.5 - 0.5 * amount
+        var scale = new Vector4(amount, amount, amount, 1);
+        var offset = 0.5f * (Vector4.one - scale);
+        TextureMath.MultiplyAdd(src, dst, scale, offset, saturate: true);
+    }
+
+    public static void Contrast(RenderTexture srcDst, float amount) =>
+        Contrast(srcDst, srcDst, amount);
 
 
     // -------------------------------------------------------------------------------

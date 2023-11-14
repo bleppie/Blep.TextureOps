@@ -247,7 +247,7 @@ void Skeletonize(uint2 xy : SV_DispatchThreadID) {
       Dst[xy] = 0;
     }
     else {
-      Dst[xy] = SrcA[xy];
+      Dst[xy] = SrcA[xy].r;
     }
   }
 }
