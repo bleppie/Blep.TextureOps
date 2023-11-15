@@ -12,7 +12,8 @@
 #pragma kernel Erode
 #pragma kernel Dilate
 #pragma kernel BlurGaussian
-#pragma kernel RecursiveConvolve
+#pragma kernel RecursiveConvolveFwd
+#pragma kernel RecursiveConvolveBak
 #pragma kernel Skeletonize
 #pragma kernel Sobel
 #pragma kernel Scharr
@@ -85,6 +86,7 @@ void Grayscale(uint2 xy : SV_DispatchThreadID) {
 	}
 }
 
+// Convert to linear, then grayscale, then back to gamma
 // See https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
 [numthreads(THREADSX, THREADSY, 1)]
 void GrayscaleGamma(uint2 xy : SV_DispatchThreadID) {
@@ -122,20 +124,21 @@ void Swizzle(uint2 xy : SV_DispatchThreadID) {
     uint4 channels = uint4(ScalarA);
     float4 color = SrcA[xy];
     Dst[xy] = float4(color[channels.x],
-                        color[channels.y],
-                        color[channels.z],
-                        color[channels.w]);
+                     color[channels.y],
+                     color[channels.z],
+                     color[channels.w]);
   }
 }
 
+// Use color values in SrcA as indicies into pallette SrcB
 [numthreads(THREADSX, THREADSY, 1)]
 void Lookup(uint2 xy : SV_DispatchThreadID) {
   if (InRange(xy)) {
     float4 color = SrcA[xy];
     Dst[xy] = float4(SampleLinear(SrcB, float2(color.r, 0)).r,
-                        SampleLinear(SrcB, float2(color.g, 0)).g,
-                        SampleLinear(SrcB, float2(color.b, 0)).b,
-                        SampleLinear(SrcB, float2(color.a, 0)).a);
+                     SampleLinear(SrcB, float2(color.g, 0)).g,
+                     SampleLinear(SrcB, float2(color.b, 0)).b,
+                     SampleLinear(SrcB, float2(color.a, 0)).a);
   }
 }
 
@@ -208,6 +211,8 @@ void Dilate(uint2 xy : SV_DispatchThreadID) {
   }
 }
 
+// A Fast Parallel Algorithm for Thinning Digital Patterns, T. Y. Zhang and C. Y. Suen
+// Reference implementation here: https://github.com/dingmyu/thinning_Zhan-Suen
 [numthreads(THREADSX, THREADSY, 1)]
 void Skeletonize(uint2 xy : SV_DispatchThreadID) {
   // Ignore outermost pixels
@@ -298,6 +303,9 @@ void Scharr(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Blurring
 
+// Incremental gaussian
+// TODO/SPEED: Transpose after first pass?
+// https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-40-incremental-computation-gaussian
 [numthreads(THREADSX, THREADSY, 1)]
 void BlurGaussian(uint2 xy : SV_DispatchThreadID) {
   if (InRange(xy)) {
@@ -311,7 +319,6 @@ void BlurGaussian(uint2 xy : SV_DispatchThreadID) {
     float  sum = incGauss.x;
     incGauss.xy *= incGauss.yz;
 
-    // Go through the remaining samples
     float2 delta = direction * TexelSize.xy;
     int halfSize = int(ceil((size - 1) * 0.5));
     for (int i = 1; i <= halfSize; i++) {
@@ -327,6 +334,10 @@ void BlurGaussian(uint2 xy : SV_DispatchThreadID) {
   }
 }
 
+// Recursive convolution
+// see https://www.researchgate.net/publication/222453003_Recursive_implementation_of_the_Gaussian_filter
+
+// Unused slow method.
 [numthreads(THREADSX * THREADSY, 1, 1)]
 void RecursiveConvolve(uint2 xy : SV_DispatchThreadID) {
   uint rowOrCol = xy.x;
@@ -347,11 +358,6 @@ void RecursiveConvolve(uint2 xy : SV_DispatchThreadID) {
 
     for (uint i = 0; i < count; ++i, idx += direction) {
 
-      // val = coeffs.x * Src + coeffs.y * prev0 + coeffs.z * prev1 + coeffs.w * prev2;
-      // prev2 = prev1;
-      // prev1 = prev0;
-      // prev0 = val;
-
       prevM[0] = SrcA[idx];
       float4 val = mul(coeffs, prevM);
       prevM[3] = prevM[2];
@@ -359,9 +365,54 @@ void RecursiveConvolve(uint2 xy : SV_DispatchThreadID) {
       prevM[1] = val;
 
       Dst[idx] = val;
-
     }
+  }
+}
 
+// Run through each row forwards
+[numthreads(THREADSX * THREADSY, 1, 1)]
+void RecursiveConvolveFwd(uint y : SV_DispatchThreadID) {
+  if (y < TextureSize.y) {
+
+    float4 coeffs = ScalarA;
+    uint2 idx = uint2(0, y);
+    uint count = TextureSize.x;
+
+    float4x4 prevM = { SrcA[idx], SrcA[idx], SrcA[idx], SrcA[idx] };
+
+    for (uint i = 0; i < count; ++i, idx += uint2(1, 0)) {
+      prevM[0] = SrcA[idx];
+      float4 val = mul(coeffs, prevM);
+      prevM[3] = prevM[2];
+      prevM[2] = prevM[1];
+      prevM[1] = val;
+
+      Dst[idx] = val;
+    }
+  }
+}
+
+// Run through each row backwards and traspose output
+[numthreads(THREADSX * THREADSY, 1, 1)]
+void RecursiveConvolveBak(uint y : SV_DispatchThreadID) {
+  if (y < TextureSize.y) {
+
+    float4 coeffs = ScalarA;
+    uint2 idx = uint2(TextureSize.x - 1, y);
+    uint count = TextureSize.x;
+
+    float4x4 prevM = { SrcA[idx], SrcA[idx], SrcA[idx], SrcA[idx] };
+
+    for (uint i = 0; i < count; ++i, idx -= uint2(1, 0)) {
+      prevM[0] = SrcA[idx];
+      float4 val = mul(coeffs, prevM);
+      prevM[3] = prevM[2];
+      prevM[2] = prevM[1];
+      prevM[1] = val;
+
+      // Transpose
+      Dst[idx.yx] = val;
+    }
   }
 }
 
@@ -393,7 +444,7 @@ void HistogramEqAccumulate(uint x : SV_DispatchThreadID) {
       Histogram[d] += Histogram[d - 1];
   }
 
-  // GroupMemoryBarrierWithGroupSync doesn't seem to work on Metal, so do it serially
+  // GroupMemoryBarrierWithGroupSync doesn't seem to work on Metal (?), so do it serially.
   // Recursive doubling algorithm: On the first pass, the value one element to
   // the left is added to the current value. On the second pass, the value two
   // elements to the left is added the current value. In general, the stride
@@ -423,9 +474,56 @@ void HistogramEqMap(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Stats
 
+// Not very cohesive memory access.
+
 [numthreads(THREADSX, THREADSY, 1)]
 void MaxReduce(uint2 xy : SV_DispatchThreadID) {
-  if (all(xy < (TextureSize + 1) / 2)) {
+  uint2 offset = (TextureSize + 1) >> 1;
+  if (all(xy < offset)) {
+    uint2 last = TextureSize - 1;
+
+    float4 WE = SrcA[min(xy + uint2(offset.x, 0), last)];
+    float4 NO = SrcA[min(xy + uint2(0, offset.y), last)];
+    float4 NW = SrcA[min(xy + offset            , last)];
+
+    Dst[xy] = max(max(SrcA[xy], WE), max(NO, NW));
+  }
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void MinReduce(uint2 xy : SV_DispatchThreadID) {
+  uint2 offset = (TextureSize + 1) >> 1;
+  if (all(xy < offset)) {
+    uint2 last = TextureSize - 1;
+
+    float4 WE = SrcA[min(xy + uint2(offset.x, 0), last)];
+    float4 NO = SrcA[min(xy + uint2(0, offset.y), last)];
+    float4 NW = SrcA[min(xy + offset            , last)];
+
+    Dst[xy] = min(min(SrcA[xy], WE), min(NO, NW));
+  }
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void SumReduce(uint2 xy : SV_DispatchThreadID) {
+  uint2 offset = (TextureSize + 1) >> 1;
+  if (all(xy < offset)) {
+
+    uint2 xyNW = xy + offset;
+    float4 WE = xyNW.x   < TextureSize.x ? SrcA[uint2(xyNW.x, xy.y)] : 0;
+    float4 NO = xyNW.y   < TextureSize.y ? SrcA[uint2(xy.x, xyNW.y)] : 0;
+    float4 NW = all(xyNW < TextureSize)  ? SrcA[xyNW] : 0;
+
+    Dst[xy] = SrcA[xy] + WE + NO + NW;
+  }
+}
+
+/*
+// Cohesive memory access but requires two tmp buffers
+
+[numthreads(THREADSX, THREADSY, 1)]
+void MaxReduce(uint2 xy : SV_DispatchThreadID) {
+  if (all(xy < (TextureSize + 1) >> 1)) {
     uint2 xySrc = xy * 2;
     uint2 xySrcNW = min(xySrc + 1, TextureSize - 1);
 
@@ -439,7 +537,7 @@ void MaxReduce(uint2 xy : SV_DispatchThreadID) {
 
 [numthreads(THREADSX, THREADSY, 1)]
 void MinReduce(uint2 xy : SV_DispatchThreadID) {
-  if (all(xy < (TextureSize + 1) / 2)) {
+  if (all(xy < (TextureSize + 1) >> 1)) {
     uint2 xySrc = xy * 2;
     uint2 xySrcNW = min(xySrc + 1, TextureSize - 1);
 
@@ -453,7 +551,7 @@ void MinReduce(uint2 xy : SV_DispatchThreadID) {
 
 [numthreads(THREADSX, THREADSY, 1)]
 void SumReduce(uint2 xy : SV_DispatchThreadID) {
-  if (all(xy < (TextureSize + 1) / 2)) {
+  if (all(xy < (TextureSize + 1) >> 1)) {
     uint2 xySrc = xy * 2;
     uint2 xySrcNW = xySrc + 1;
 
@@ -466,6 +564,7 @@ void SumReduce(uint2 xy : SV_DispatchThreadID) {
   }
 }
 
+*/
 
 // -------------------------------------------------------------------------------
 // Composition

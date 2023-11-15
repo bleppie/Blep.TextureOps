@@ -10,13 +10,13 @@ public class TextureOpsExample : MonoBehaviour {
     public Texture2D gradient;
     public RenderTexture dst;
 
-    [Range(-4, 4)]
-    public float contrast;
+    [Range(1,100)]
+    public float test = 10;
 
     public IEnumerator Start() {
         var wait = new WaitForSeconds(1);
 
-        var tmp = TextureCompute.CreateRenderTexture(dst);
+        var tmp = TextureCompute.GetTemporary(dst);
 
         while (true) {
 

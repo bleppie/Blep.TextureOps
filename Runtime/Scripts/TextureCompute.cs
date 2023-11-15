@@ -31,17 +31,20 @@ public class TextureCompute {
         shader.FindKernel(name);
 
     public void GetKernelThreadGroupSizes(int kernel, out int xs, out int ys) {
-        // Dispatch uses uses ints, so convert here
         shader.GetKernelThreadGroupSizes(kernel, out uint uxs, out uint uys, out uint uzs);
+        // Dispatch uses uses ints, so convert here
         xs = (int) uxs;
         ys = (int) uys;
     }
 
-    public void GetKernelThreadGroups(int kernel, out int x, out int y) {
+    public void GetKernelThreadGroups(int kernel, int width, int height, out int x, out int y) {
         GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
         x = (width  + xs - 1) / xs; // Round up
         y = (height + ys - 1) / ys; // Round up
     }
+
+    public void GetKernelThreadGroups(int kernel, out int x, out int y) =>
+        GetKernelThreadGroups(kernel, width, height, out x, out y);
 
     public void Dispatch(int kernel, int threadGroupsX, int threadGroupsY) =>
         shader.Dispatch(kernel, threadGroupsX, threadGroupsY, 1);
@@ -58,30 +61,40 @@ public class TextureCompute {
         shader.SetVector(TexelSizeId, new Vector2(1.0f / width, 1.0f / height));
     }
 
-    public static RenderTexture CreateRenderTexture(int width, int height, GraphicsFormat format) {
-        // Not all graphics formats are supported, so convert to RTFormat
+    public static RenderTexture GetTemporary(int width, int height, GraphicsFormat format) {
+        // Find a RenderTextureFormat compatible with the given format
+
+        // Render texture doesn't have a standard 3-channel format, so
+        // converting a typical R8G8B8_SRGB format will give an error. Add a
+        // alpha channel to make things work. Annoying that there doesn't seem a
+        // better way to do this.
+        if (GraphicsFormatUtility.GetColorComponentCount(format) == 3) {
+            format = GraphicsFormatUtility.ConvertToAlphaFormat(format);
+        }
         var rtFormat = GraphicsFormatUtility.GetRenderTextureFormat(format);
-        // TODO/BUG: Unity spits out "RenderTexture color format cannot be set to a depth/stencil format"
-        //           even though depth/stencil is set to 0
-        var rt = new RenderTexture(width, height, 0, rtFormat);
+        var rt = RenderTexture.GetTemporary(width, height, 0, rtFormat);
         rt.enableRandomWrite = true;
         return rt;
     }
 
-		public static RenderTexture CreateRenderTexture(Texture src, GraphicsFormat format) =>
-        CreateRenderTexture(src.width, src.height, format);
+    public static RenderTexture GetTemporary(Texture src, GraphicsFormat format) =>
+        GetTemporary(src.width, src.height, format);
 
-		public static RenderTexture CreateRenderTexture(Texture src) =>
-        CreateRenderTexture(src.width, src.height, src.graphicsFormat);
+    public static RenderTexture GetTemporary(Texture src) =>
+        GetTemporary(src, src.graphicsFormat);
 
-		public static RenderTexture CreateFloatRenderTexture(Texture src) {
+		public static RenderTexture GetFloatTemporary(Texture src) {
         var format = GraphicsFormatUtility.GetColorComponentCount(src.graphicsFormat) switch {
             1 => GraphicsFormat.R32_SFloat,
             2 => GraphicsFormat.R32G32_SFloat,
             _ => GraphicsFormat.R32G32B32A32_SFloat
         };
-        return CreateRenderTexture(src, format);
+        return GetTemporary(src, format);
     }
+    // For completeness
+    public static void ReleaseTemporary(RenderTexture tmp) =>
+        RenderTexture.ReleaseTemporary(tmp);
+
 
     // -------------------------------------------------------------------------------
 

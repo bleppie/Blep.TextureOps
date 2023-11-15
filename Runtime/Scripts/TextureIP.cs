@@ -66,6 +66,7 @@ public static class TextureIP {
 
 		public static void Swizzle(Texture src, RenderTexture dst, string pattern) {
         Vector4 channels = Vector4.zero;
+        // Map characters to  channels
         for (int i = Mathf.Min(4, pattern.Length); --i >= 0; ) {
             channels[i] = pattern[i] switch {
                 'r' or 'x' => 0,
@@ -136,16 +137,18 @@ public static class TextureIP {
     public static void Skeletonize(Texture src, RenderTexture dst,
                                    int iterations,
                                    RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.CreateRenderTexture(src);
+        var tmp = tmp_ ?? TextureCompute.GetTemporary(src);
 
         int kernel = compute.FindKernel("Skeletonize");
         for (int i = 0; i < iterations; i++) {
             compute.UnaryOp(kernel, i == 0 ? src : dst, tmp, Vector4.zero);
             compute.UnaryOp(kernel, tmp, dst, Vector4.one);
         }
+
+        // TODO: be consistent with erode/dilate
         TextureDraw.Border(dst, Vector4.zero, 1);
 
-        if (tmp != tmp_) Object.Destroy(tmp);
+        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
 
     public static void Skeletonize(RenderTexture srcDst,
@@ -165,7 +168,7 @@ public static class TextureIP {
 		public static void BlurGaussian(Texture src, RenderTexture dst,
 																		float size, float sigma,
                                     RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.CreateRenderTexture(dst);
+        var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
 
         if (sigma < 0) sigma = sigma = size / 4;
 
@@ -179,7 +182,7 @@ public static class TextureIP {
         compute.UnaryOp(kernel, src, tmp, incGauss, new Vector2(1, 0));
         compute.UnaryOp(kernel, tmp, dst, incGauss, new Vector2(0, 1));
 
-        if (tmp != tmp_) Object.Destroy(tmp);
+        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
 
 		public static void BlurGaussian(RenderTexture srcDst,
@@ -190,40 +193,55 @@ public static class TextureIP {
 
 		public static void RecursiveConvolve(Texture src, RenderTexture dst,
                                          Vector4 coeffs, RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.CreateRenderTexture(dst);
+        // TODO: is there a way to reinterpret a RenderTexture's dimensions?
+        Debug.Assert(tmp_ == null || (tmp_.width >= src.height && tmp_.height >= src.width),
+                     "RecursiveConvolve requires a temporary buffer with transposed (height, width) dimensions");
+        var tmp = tmp_ ?? TextureCompute.GetTemporary(dst.height, dst.width, dst.graphicsFormat);
 
         var shader = compute.shader;
-        var kernel = compute.FindKernel("RecursiveConvolve");
+        var fwdKernel = compute.FindKernel("RecursiveConvolveFwd");
+        var bakKernel = compute.FindKernel("RecursiveConvolveBak");
 
-        compute.SetSize(src.width, src.height);
         shader.SetVector(ScalarAId, coeffs);
 
+        // Asssume fwdKernel same as bakKernel
         int xs, ys;
-        compute.GetKernelThreadGroupSizes(kernel, out xs, out ys);
+        compute.GetKernelThreadGroupSizes(fwdKernel, out xs, out ys);
         int threadsX = (src.height + xs - 1) / xs;
         int threadsY = (src.width  + xs - 1) / xs;
 
-        shader.SetTexture(kernel, SrcAId, src);
-        shader.SetTexture(kernel, DstId, tmp);
-        shader.SetVector(ScalarBId, new Vector2(1, 0));
-        compute.Dispatch(kernel, threadsX, 1);
+        // Because of the way texture data is stored, it's faster to access
+        // pixels by rows than by columns. So, rather than convolving each row
+        // forwards then backwards, and then each column forwards then
+        // backwards, it's faster to convolve each row forwards then backwards,
+        // transpose, amd repeat. The transposition step is folded into the
+        // backwards convolution (see the compute shader).
 
-        shader.SetTexture(kernel, SrcAId, tmp);
-        shader.SetTexture(kernel, DstId, dst);
-        shader.SetVector(ScalarBId, new Vector4(-1, 0));
-        compute.Dispatch(kernel, threadsX, 1);
+        compute.SetSize(src.width, src.height);
 
-        shader.SetTexture(kernel, SrcAId, dst);
-        shader.SetTexture(kernel, DstId, tmp);
-        shader.SetVector(ScalarBId, new Vector4(0, 1));
-        compute.Dispatch(kernel, threadsY, 1);
+        // Convolve forward src -> dst
+        shader.SetTexture(fwdKernel, SrcAId, src);
+        shader.SetTexture(fwdKernel, DstId, dst);
+        compute.Dispatch(fwdKernel, threadsX, 1);
 
-        shader.SetTexture(kernel, SrcAId, tmp);
-        shader.SetTexture(kernel, DstId, dst);
-        shader.SetVector(ScalarBId, new Vector4(0, -1));
-        compute.Dispatch(kernel, threadsY, 1);
+        // Convolve backward and transpose dst -> tmp
+        shader.SetTexture(bakKernel, SrcAId, dst);
+        shader.SetTexture(bakKernel, DstId, tmp);
+        compute.Dispatch(bakKernel, threadsX, 1);
 
-        if (tmp != tmp_) Object.Destroy(tmp);
+        compute.SetSize(src.height, src.width);
+
+        // Convolve forward tmp -> tmp
+        shader.SetTexture(fwdKernel, SrcAId, tmp);
+        shader.SetTexture(fwdKernel, DstId, tmp);
+        compute.Dispatch(fwdKernel, threadsY, 1);
+
+        // Convolve backward and transpose tmp -> dst
+        shader.SetTexture(bakKernel, SrcAId, tmp);
+        shader.SetTexture(bakKernel, DstId, dst);
+        compute.Dispatch(bakKernel, threadsY, 1);
+
+        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
 
     // https://www.researchgate.net/publication/222453003_Recursive_implementation_of_the_Gaussian_filter
@@ -330,8 +348,8 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Stats
 
-		public static Color Reduce(string kernelName, Texture src, RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.CreateFloatRenderTexture(src);
+		public static Vector4 Reduce(string kernelName, Texture src, RenderTexture tmp_=null) {
+        var tmp = tmp_ ?? TextureCompute.GetFloatTemporary(src);
 
         int kernel = compute.FindKernel(kernelName);
         var shader = compute.shader;
@@ -341,18 +359,22 @@ public static class TextureIP {
 
         shader.SetTexture(kernel, SrcAId, src);;
 
-        while (width > 0 && height > 0) {
+        while (width > 1 && height > 1) {
+            int halfWidth  = (width  + 1) >> 1;
+            int halfHeight = (height + 1) >> 1;
+
             compute.SetSize(width, height);
             shader.SetTexture(kernel, DstId, tmp);
-            compute.Dispatch(kernel);
-            width >>= 1;
-            height >>= 1;
+            compute.GetKernelThreadGroups(kernel, halfWidth, halfHeight, out int xg, out int yg);
+            compute.Dispatch(kernel, xg, yg);
+            width  = halfWidth;
+            height = halfHeight;
 
             // Work in-place after the first iteration
             shader.SetTexture(kernel, SrcAId, tmp);;
         }
 
-        // Read pixel at 0, 0 // TODO/SPEED: cache this
+        // Read pixel at 0, 0 // TODO/SPEED: cache this texture
         var data = new Texture2D(1, 1, tmp.graphicsFormat, 0);
         RenderTexture.active = tmp;
         data.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
@@ -360,17 +382,17 @@ public static class TextureIP {
         var pixel = data.GetPixel(0, 0);
         Object.Destroy(data);
 
-        if (tmp != tmp_) Object.Destroy(tmp);
+        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
         return pixel;
     }
 
-    public static Color Max(Texture src, RenderTexture tmp=null) =>
+    public static Vector4 Max(Texture src, RenderTexture tmp=null) =>
         Reduce("MaxReduce", src, tmp);
 
-    public static Color Min(Texture src, RenderTexture tmp=null) =>
+    public static Vector4 Min(Texture src, RenderTexture tmp=null) =>
         Reduce("MinReduce", src, tmp);
 
-    public static Color Sum(Texture src, RenderTexture tmp=null) =>
+    public static Vector4 Sum(Texture src, RenderTexture tmp=null) =>
         Reduce("SumReduce", src, tmp);
 
     // -------------------------------------------------------------------------------
