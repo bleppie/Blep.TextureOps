@@ -61,9 +61,8 @@ public class TextureCompute {
         shader.SetVector(TexelSizeId, new Vector2(1.0f / width, 1.0f / height));
     }
 
-    public static RenderTexture GetTemporary(int width, int height, GraphicsFormat format) {
-        // Find a RenderTextureFormat compatible with the given format
-
+    // Finds a RenderTextureFormat compatible with the given format
+    public static RenderTextureFormat GetCompatibleRenderTextureFormat(GraphicsFormat format) {
         // Render texture doesn't have a standard 3-channel format, so
         // converting a typical R8G8B8_SRGB format will give an error. Add a
         // alpha channel to make things work. Annoying that there doesn't seem a
@@ -71,18 +70,55 @@ public class TextureCompute {
         if (GraphicsFormatUtility.GetColorComponentCount(format) == 3) {
             format = GraphicsFormatUtility.ConvertToAlphaFormat(format);
         }
-        var rtFormat = GraphicsFormatUtility.GetRenderTextureFormat(format);
+        return GraphicsFormatUtility.GetRenderTextureFormat(format);
+    }
+
+    // Creates a RenderTexture with the given size and format
+    public static RenderTexture CreateRenderTexture(int width, int height, GraphicsFormat format) {
+        var rtFormat = GetCompatibleRenderTextureFormat(format);
+        var rt = new RenderTexture(width, height, 0, rtFormat);
+        rt.enableRandomWrite = true;
+        return rt;
+    }
+
+    // Creates a RenderTexture with the same size as the given texture and with the given format
+    public static RenderTexture CreateRenderTexture(Texture src, GraphicsFormat format) =>
+        CreateRenderTexture(src.width, src.height, format);
+
+    // Creates a RenderTexture with the same size and format as the given texture
+    public static RenderTexture CreateRenderTexture(Texture src) =>
+        CreateRenderTexture(src, src.graphicsFormat);
+
+    // Creates a RenderTexture with the same size and channels as the given
+    // texture and but with a float data type
+		public static RenderTexture CreateFloatRenderTexture(Texture src) {
+        var format = GraphicsFormatUtility.GetColorComponentCount(src.graphicsFormat) switch {
+            1 => GraphicsFormat.R32_SFloat,
+            2 => GraphicsFormat.R32G32_SFloat,
+            _ => GraphicsFormat.R32G32B32A32_SFloat
+        };
+        return CreateRenderTexture(src, format);
+    }
+
+    // Returns a temporary RenderTexture with the given size and format
+    public static RenderTexture GetTemporary(int width, int height, GraphicsFormat format) {
+        var rtFormat = GetCompatibleRenderTextureFormat(format);
         var rt = RenderTexture.GetTemporary(width, height, 0, rtFormat);
         rt.enableRandomWrite = true;
         return rt;
     }
 
+    // Returns a temporary RenderTexture with the same size as the given texture
+    // and with the given format
     public static RenderTexture GetTemporary(Texture src, GraphicsFormat format) =>
         GetTemporary(src.width, src.height, format);
 
+    // Returns a temporary RenderTexture with the same size and format as the given texture
     public static RenderTexture GetTemporary(Texture src) =>
         GetTemporary(src, src.graphicsFormat);
 
+    // Returns a temporary RenderTexture with the same size and channels as the
+    // given texture and but with a float data type.
 		public static RenderTexture GetFloatTemporary(Texture src) {
         var format = GraphicsFormatUtility.GetColorComponentCount(src.graphicsFormat) switch {
             1 => GraphicsFormat.R32_SFloat,
@@ -91,7 +127,8 @@ public class TextureCompute {
         };
         return GetTemporary(src, format);
     }
-    // For completeness
+
+    // Releases a temporary texture
     public static void ReleaseTemporary(RenderTexture tmp) =>
         RenderTexture.ReleaseTemporary(tmp);
 
