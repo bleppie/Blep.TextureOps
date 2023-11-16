@@ -63,13 +63,22 @@ public class TextureCompute {
 
     // Finds a RenderTextureFormat compatible with the given format
     public static RenderTextureFormat GetCompatibleRenderTextureFormat(GraphicsFormat format) {
+        // Annoying that there doesn't seem a better way to do this.
+
+        // Handle compressed formats
+        if (GraphicsFormatUtility.IsCompressedFormat(format)) {
+            format = GraphicsFormatUtility.IsHDRFormat(format)
+                ? GraphicsFormat.R32G32B32A32_SFloat
+                : GraphicsFormat.R8G8B8A8_UNorm;
+        }
+
         // Render texture doesn't have a standard 3-channel format, so
         // converting a typical R8G8B8_SRGB format will give an error. Add a
-        // alpha channel to make things work. Annoying that there doesn't seem a
-        // better way to do this.
-        if (GraphicsFormatUtility.GetColorComponentCount(format) == 3) {
+        // alpha channel to make things work.
+        else if (GraphicsFormatUtility.GetComponentCount(format) == 3) {
             format = GraphicsFormatUtility.ConvertToAlphaFormat(format);
         }
+
         return GraphicsFormatUtility.GetRenderTextureFormat(format);
     }
 
@@ -92,7 +101,7 @@ public class TextureCompute {
     // Creates a RenderTexture with the same size and channels as the given
     // texture and but with a float data type
 		public static RenderTexture CreateFloatRenderTexture(Texture src) {
-        var format = GraphicsFormatUtility.GetColorComponentCount(src.graphicsFormat) switch {
+        var format = GraphicsFormatUtility.GetComponentCount(src.graphicsFormat) switch {
             1 => GraphicsFormat.R32_SFloat,
             2 => GraphicsFormat.R32G32_SFloat,
             _ => GraphicsFormat.R32G32B32A32_SFloat

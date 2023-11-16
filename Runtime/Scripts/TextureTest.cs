@@ -43,7 +43,8 @@ public class TextureTest : MonoBehaviour {
         // Wait for startup
         yield return new WaitForSeconds(startupPause);
         //TestAccessSpeed();
-        TestReduce();
+        //TestReduce();
+        TestFormats();
     }
 
     // -------------------------------------------------------------------------------
@@ -104,6 +105,15 @@ public class TextureTest : MonoBehaviour {
         _MeasureKernel("TestLoadOffset");
         _MeasureKernel("TestLoadOffsetClamped");
     }
-}
 
+    public void TestFormats() {
+        for (int i = 0; i < (int) TextureFormat.RGBA64; i++) {
+            var format = (TextureFormat) i;
+            if (int.TryParse(format.ToString(), out int x)) continue;
+            var gFormat = GraphicsFormatUtility.GetGraphicsFormat(format, false);
+            var rtFormat = TextureCompute.GetCompatibleRenderTextureFormat(gFormat);
+            Debug.Log($"{format} => {gFormat} => {rtFormat}");
+        }
+    }
+}
 }
