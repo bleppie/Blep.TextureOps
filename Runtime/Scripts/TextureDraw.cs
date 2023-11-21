@@ -6,7 +6,7 @@ public static class TextureDraw {
 
     private static TextureCompute _compute;
     private static TextureCompute compute =>
-        (_compute = _compute ?? new TextureCompute("Shaders/TextureDraw"));
+        (_compute = _compute ?? new TextureCompute("Shaders/Blep/TextureDraw"));
 
     // Reset statics while in the editor and play-mode-options are turned on
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

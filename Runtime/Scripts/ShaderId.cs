@@ -24,10 +24,13 @@ public struct ShaderId  {
 
     // Implciitly creates ShaderId from string. Let's you write:
     //    ShaderId shadowColorId = "_ShadowColor";
-    static public implicit operator ShaderId(string name) => new ShaderId(name);
+    static public implicit operator ShaderId(string name) =>
+        new ShaderId(name);
 
     // Implicitly converts ShaderId to int. Let's you write:
     //    material.SetColor(shadowColorId, Color.white);
-    static public implicit operator int(ShaderId sid) => sid.id;
+    static public implicit operator int(ShaderId sid) =>
+        sid.id;
 }
+
 }

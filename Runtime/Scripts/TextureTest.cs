@@ -24,13 +24,15 @@ public class TextureTest : MonoBehaviour {
     private RenderTexture _dst;
     private RenderTexture _tmp;
     private Texture2D _flush;
+    public int width => _src.width;
+    public int height => _src.height;
 
     public void Awake() {
         if (src != null) {
             imageSize = new Vector2Int(src.width, src.height);
         }
 
-        _compute = new TextureCompute("Shaders/TextureTest");
+        _compute = new TextureCompute("Shaders/Blep/TextureTest");
         _src = src ?? new Texture2D(imageSize.x, imageSize.y, imageFormat, 0);
         _dst = dst ?? TextureCompute.GetTemporary(src);
         _tmp = TextureCompute.GetTemporary(src);
@@ -45,6 +47,7 @@ public class TextureTest : MonoBehaviour {
         //TestAccessSpeed();
         //TestReduce();
         TestFormats();
+        //TestSave();
     }
 
     // -------------------------------------------------------------------------------

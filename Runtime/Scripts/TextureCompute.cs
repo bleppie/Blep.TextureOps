@@ -21,7 +21,7 @@ public class TextureCompute {
     public int height { get; private set; }
 
     public TextureCompute(string shaderName) {
-				shader = Resources.Load<ComputeShader>(shaderName);
+        shader = Resources.Load<ComputeShader>(shaderName);
         if (shader == null) {
             throw new System.IO.FileNotFoundException(shaderName);
         }
@@ -32,28 +32,36 @@ public class TextureCompute {
 
     public void GetKernelThreadGroupSizes(int kernel, out int xs, out int ys) {
         shader.GetKernelThreadGroupSizes(kernel, out uint uxs, out uint uys, out uint uzs);
-        // Dispatch uses uses ints, so convert here
+        // Dispatch uses ints, so convert here
         xs = (int) uxs;
         ys = (int) uys;
     }
 
+    // Finds the number of thread groups needed to run the given kernel over an
+    // image of the given size.
     public void GetKernelThreadGroups(int kernel, int width, int height, out int x, out int y) {
         GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
         x = (width  + xs - 1) / xs; // Round up
         y = (height + ys - 1) / ys; // Round up
     }
 
+    // Finds the number of thread groups needed to run the given kernel over an
+    // image sized this.width x this.height
     public void GetKernelThreadGroups(int kernel, out int x, out int y) =>
         GetKernelThreadGroups(kernel, width, height, out x, out y);
 
+    // Dispatches the kernel with the given group sizes
     public void Dispatch(int kernel, int threadGroupsX, int threadGroupsY) =>
         shader.Dispatch(kernel, threadGroupsX, threadGroupsY, 1);
 
+    // Calculates the needed group sizes and dispatches the kernel.
     public void Dispatch(int kernel) {
         GetKernelThreadGroups(kernel, out int x, out int y);
         Dispatch(kernel, x, y);
     }
 
+    // Sets the TextureSize and TexelSize shader properties and stores the size
+    // for use in Dispatch etc.
     public virtual void SetSize(int width, int height) {
         this.width = width;
         this.height = height;
@@ -100,7 +108,7 @@ public class TextureCompute {
 
     // Creates a RenderTexture with the same size and channels as the given
     // texture and but with a float data type
-		public static RenderTexture CreateFloatRenderTexture(Texture src) {
+    public static RenderTexture CreateFloatRenderTexture(Texture src) {
         var format = GraphicsFormatUtility.GetComponentCount(src.graphicsFormat) switch {
             1 => GraphicsFormat.R32_SFloat,
             2 => GraphicsFormat.R32G32_SFloat,
@@ -128,7 +136,7 @@ public class TextureCompute {
 
     // Returns a temporary RenderTexture with the same size and channels as the
     // given texture and but with a float data type.
-		public static RenderTexture GetFloatTemporary(Texture src) {
+    public static RenderTexture GetFloatTemporary(Texture src) {
         var format = GraphicsFormatUtility.GetColorComponentCount(src.graphicsFormat) switch {
             1 => GraphicsFormat.R32_SFloat,
             2 => GraphicsFormat.R32G32_SFloat,
@@ -144,7 +152,9 @@ public class TextureCompute {
 
     // -------------------------------------------------------------------------------
 
-		public void BinaryOp(int kernel,
+    // Sets the appropriate shader properties (SrcA, SrcB, Dst, ScalarA,
+    // ScalarB, and ScalarC) and dispatches the kernel
+    public void BinaryOp(int kernel,
                          Texture srcA, Texture srcB, RenderTexture dst,
                          Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) {
 
@@ -162,17 +172,17 @@ public class TextureCompute {
         Dispatch(kernel);
     }
 
-		public void UnaryOp(int kernel,
+    public void UnaryOp(int kernel,
                         Texture src, RenderTexture dst,
                         Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
-				BinaryOp(kernel, src, null, dst, scalarA, scalarB, scalarC);
+        BinaryOp(kernel, src, null, dst, scalarA, scalarB, scalarC);
 
-		public void BinaryOp(string kernelName,
+    public void BinaryOp(string kernelName,
                          Texture srcA, Texture srcB, RenderTexture dst,
                          Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
         BinaryOp(FindKernel(kernelName), srcA, srcB, dst, scalarA, scalarB, scalarC);
 
-		public void UnaryOp(string kernelName,
+    public void UnaryOp(string kernelName,
                         Texture srcA, RenderTexture dst,
                         Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
         UnaryOp(FindKernel(kernelName), srcA, dst, scalarA, scalarB, scalarC);

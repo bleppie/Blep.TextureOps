@@ -8,7 +8,7 @@ public static class TextureIP {
 
     private static TextureCompute _compute;
     public static TextureCompute compute =>
-        (_compute = _compute ?? new TextureCompute("Shaders/TextureIP"));
+        (_compute = _compute ?? new TextureCompute("Shaders/Blep/TextureIP"));
 
     // Reset statics while in the editor and play-mode-options are turned on
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -24,18 +24,19 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Color conversion
 
-		public static void Grayscale(Texture src, RenderTexture dst) =>
+    public static void Grayscale(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Grayscale", src, dst);
 
-		public static void Grayscale(RenderTexture srcDst) =>
+    public static void Grayscale(RenderTexture srcDst) =>
         Grayscale(srcDst, srcDst);
 
 
-		public static void GrayscaleGamma(Texture src, RenderTexture dst) =>
+    public static void GrayscaleGamma(Texture src, RenderTexture dst) =>
         compute.UnaryOp("GrayscaleGamma", src, dst);
 
-		public static void GrayscaleGamma(RenderTexture srcDst) =>
+    public static void GrayscaleGamma(RenderTexture srcDst) =>
         GrayscaleGamma(srcDst, srcDst);
+
 
     public static void Threshold(Texture src, RenderTexture dst, Vector4 threshold) =>
         compute.UnaryOp("Threshold", src, dst, threshold);
@@ -44,27 +45,27 @@ public static class TextureIP {
         Threshold(srcDst, srcDst, threshold);
 
 
-		public static void ConvertRGB2HSV(Texture src, RenderTexture dst) =>
+    public static void ConvertRGB2HSV(Texture src, RenderTexture dst) =>
         compute.UnaryOp("ConvertRGB2HSV", src, dst);
 
-		public static void ConvertRGB2HSV(RenderTexture srcDst) =>
+    public static void ConvertRGB2HSV(RenderTexture srcDst) =>
         ConvertRGB2HSV(srcDst, srcDst);
 
 
-		public static void ConvertHSV2RGB(Texture src, RenderTexture dst) =>
+    public static void ConvertHSV2RGB(Texture src, RenderTexture dst) =>
         compute.UnaryOp("ConvertHSV2RGB", src, dst);
 
-		public static void ConvertHSFV2RGB(RenderTexture srcDst) =>
+    public static void ConvertHSFV2RGB(RenderTexture srcDst) =>
         ConvertHSV2RGB(srcDst, srcDst);
 
 
-		public static void Swizzle(Texture src, RenderTexture dst, Vector4 channels) =>
+    public static void Swizzle(Texture src, RenderTexture dst, Vector4 channels) =>
         compute.UnaryOp("Swizzle", src, dst, channels);
 
-		public static void Swizzle(RenderTexture srcDst, Vector4 channels) =>
+    public static void Swizzle(RenderTexture srcDst, Vector4 channels) =>
         Swizzle(srcDst, srcDst, channels);
 
-		public static void Swizzle(Texture src, RenderTexture dst, string pattern) {
+    public static void Swizzle(Texture src, RenderTexture dst, string pattern) {
         Vector4 channels = Vector4.zero;
         // Map characters to  channels
         for (int i = Mathf.Min(4, pattern.Length); --i >= 0; ) {
@@ -79,22 +80,22 @@ public static class TextureIP {
         Swizzle(src, dst, channels);
     }
 
-		public static void Swizzle(RenderTexture srcDst, string pattern) =>
+    public static void Swizzle(RenderTexture srcDst, string pattern) =>
         Swizzle(srcDst, srcDst, pattern);
 
 
-		public static void Lookup(Texture src, RenderTexture dst, Texture pallete) =>
+    public static void Lookup(Texture src, RenderTexture dst, Texture pallete) =>
         compute.BinaryOp("Lookup", src, pallete, dst);
 
     public static void Lookup(RenderTexture srcDst, Texture pallete) =>
         Lookup(srcDst, srcDst, pallete);
 
 
-		public static void Contrast(Texture src, RenderTexture dst, float amount) {
+    public static void Contrast(Texture src, RenderTexture dst, float amount) {
         // Map negative values to 1/(-amount+1) and positive to amount+1
         amount = amount < 0 ? (1.0f / (1.0f - amount)) : 1.0f + amount;
 
-        // (x - 0.5) * amount + 0.5 := x * amount + 0.5 - 0.5 * amount
+        // (x - 0.5) * amount + 0.5 == x * amount + 0.5 - 0.5 * amount
         var scale = new Vector4(amount, amount, amount, 1);
         var offset = 0.5f * (Vector4.one - scale);
         TextureMath.MultiplyAdd(src, dst, scale, offset, saturate: true);
@@ -107,23 +108,24 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Geometric
 
-		public static void FlipHorizontal(Texture src, RenderTexture dst) =>
+    public static void FlipHorizontal(Texture src, RenderTexture dst) =>
         compute.UnaryOp("FlipHorizontal", src, dst);
 
-		public static void FlipHorizontal(RenderTexture srcDst) =>
+    public static void FlipHorizontal(RenderTexture srcDst) =>
         FlipHorizontal(srcDst, srcDst);
 
-		public static void FlipVertical(Texture src, RenderTexture dst) =>
+    public static void FlipVertical(Texture src, RenderTexture dst) =>
         compute.UnaryOp("FlipVertical", src, dst);
 
-		public static void FlipVertical(RenderTexture srcDst) =>
+    public static void FlipVertical(RenderTexture srcDst) =>
         FlipVertical(srcDst, srcDst);
 
-		public static void Rotate180(Texture src, RenderTexture dst) =>
+    public static void Rotate180(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Rotate180", src, dst);
 
-		public static void Rotate180(RenderTexture srcDst) =>
+    public static void Rotate180(RenderTexture srcDst) =>
         Rotate180(srcDst, srcDst);
+
 
     // -------------------------------------------------------------------------------
     // Morphology & Skeletonization
@@ -165,8 +167,8 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Blurring
 
-		public static void BlurGaussian(Texture src, RenderTexture dst,
-																		float size, float sigma,
+    public static void BlurGaussian(Texture src, RenderTexture dst,
+                                    float size, float sigma,
                                     RenderTexture tmp_=null) {
         var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
 
@@ -185,13 +187,13 @@ public static class TextureIP {
         if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
 
-		public static void BlurGaussian(RenderTexture srcDst,
-																		float size, float sigma,
+    public static void BlurGaussian(RenderTexture srcDst,
+                                    float size, float sigma,
                                     RenderTexture tmp) =>
         BlurGaussian(srcDst, srcDst, size, sigma, tmp);
 
 
-		public static void RecursiveConvolve(Texture src, RenderTexture dst,
+    public static void RecursiveConvolve(Texture src, RenderTexture dst,
                                          Vector4 coeffs, RenderTexture tmp_=null) {
         // TODO: is there a way to reinterpret a RenderTexture's dimensions?
         Debug.Assert(tmp_ == null || (tmp_.width >= src.height && tmp_.height >= src.width),
@@ -270,17 +272,19 @@ public static class TextureIP {
         return new Vector4((float) B, (float) b1, (float) b2, (float) b3);
     }
 
-		public static void BlurGaussianRecursive(Texture src, RenderTexture dst,
+    public static void BlurGaussianRecursive(Texture src, RenderTexture dst,
                                              float sigma, RenderTexture tmp_=null) =>
         RecursiveConvolve(src, dst, GetRecursizeGaussianCoeffs(sigma), tmp_); //
 
-		public static void BlurGaussianRecursive(RenderTexture srcDst,
+    public static void BlurGaussianRecursive(RenderTexture srcDst,
                                              float sigma, RenderTexture tmp_=null) =>
         BlurGaussianRecursive(srcDst, srcDst, sigma, tmp_);
 
     // -------------------------------------------------------------------------------
     // Histogram
 
+    // Returns the src histogram in a ComputeBuffer. Make sure to release the
+    // buffer when done with it.
     public static ComputeBuffer GetHistogramBuffer(Texture src, ComputeBuffer histogramBuffer=null) {
 
         histogramBuffer = histogramBuffer ?? new ComputeBuffer(256, sizeof(uint) * 4);
@@ -288,12 +292,12 @@ public static class TextureIP {
         var shader = compute.shader;
         compute.SetSize(src.width, src.height);
 
-				// Clear the histogram
+        // Clear the histogram
         int clearKernel = shader.FindKernel("HistogramEqClear");
         shader.SetBuffer(clearKernel, "Histogram", histogramBuffer);
         compute.Dispatch(clearKernel, 1, 1);
 
-				// Create the histogram
+        // Create the histogram
         int gatherKernel = shader.FindKernel("HistogramEqGather");
         shader.SetBuffer(gatherKernel, "Histogram", histogramBuffer);
         shader.SetTexture(gatherKernel, SrcAId, src);
@@ -302,6 +306,7 @@ public static class TextureIP {
         return histogramBuffer;
     }
 
+    // Returns the src histogram in a Array
     public static Vector4[] GetHistogram(Texture src, Vector4[] histogram=null) {
         histogram = histogram ?? new Vector4[256];
         var histogramBuffer = GetHistogramBuffer(src);
@@ -320,35 +325,38 @@ public static class TextureIP {
         return histogram;
     }
 
-		public static void EqualizeHistogram(Texture src, RenderTexture dst) {
+    public static void EqualizeHistogram(Texture src, RenderTexture dst) {
 
         var histogramBuffer = GetHistogramBuffer(src);
 
         var shader = compute.shader;
         compute.SetSize(src.width, src.height);
 
-				// Sum the histogram
+        // Sum the histogram
         int accumulateKernel = shader.FindKernel("HistogramEqAccumulate");
         shader.SetBuffer(accumulateKernel, "Histogram", histogramBuffer);
         compute.Dispatch(accumulateKernel, 1, 1);
 
-				// Remap input to output
+        // Remap input to output
         int mapKernel = shader.FindKernel("HistogramEqMap");
         shader.SetBuffer(mapKernel, "Histogram", histogramBuffer);
         shader.SetTexture(mapKernel, SrcAId, src);
         shader.SetTexture(mapKernel, DstId, dst);
         compute.Dispatch(mapKernel);
 
-				histogramBuffer.Release();
-		}
+        histogramBuffer.Release();
+    }
 
-		public static void EqualizeHistogram(RenderTexture srcDst) =>
+    public static void EqualizeHistogram(RenderTexture srcDst) =>
         EqualizeHistogram(srcDst, srcDst);
 
     // -------------------------------------------------------------------------------
     // Stats
 
-		public static Vector4 Reduce(string kernelName, Texture src, RenderTexture tmp_=null) {
+    // Dispatches the kernel multiple times, starting at half the size of the
+    // src image and halving the size each iteration. When down to a 1x1 image,
+    // returns the value of the single pixel in this imagew.
+    public static Vector4 Reduce(string kernelName, Texture src, RenderTexture tmp_=null) {
         var tmp = tmp_ ?? TextureCompute.GetFloatTemporary(src);
 
         int kernel = compute.FindKernel(kernelName);
@@ -374,7 +382,7 @@ public static class TextureIP {
             shader.SetTexture(kernel, SrcAId, tmp);;
         }
 
-        // Read pixel at 0, 0 // TODO/SPEED: cache this texture
+        // Read pixel at 0, 0 // TODO/SPEED: cache this mini texture
         var data = new Texture2D(1, 1, tmp.graphicsFormat, 0);
         RenderTexture.active = tmp;
         data.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
@@ -386,34 +394,61 @@ public static class TextureIP {
         return pixel;
     }
 
+    // Returns maximum pixel value
     public static Vector4 Max(Texture src, RenderTexture tmp=null) =>
         Reduce("MaxReduce", src, tmp);
 
+    // Returns minimum pixel value
     public static Vector4 Min(Texture src, RenderTexture tmp=null) =>
         Reduce("MinReduce", src, tmp);
 
+    // Returns sum of pixel values. If you provide a tmp texture, make sure it
+    // can handle the summing without overflowing (ie, use a float texture).
     public static Vector4 Sum(Texture src, RenderTexture tmp=null) =>
         Reduce("SumReduce", src, tmp);
 
     // -------------------------------------------------------------------------------
     // Composition
 
-		public static void ComposeOver(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // Over
+    // αA*A+(1- αA)* αB*B
+    // αA+(1-αA)* αB
+    // A occludes B
+    public static void ComposeOver(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposeOver", srcA, srcB, dst);
 
-		public static void ComposeIn(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // IN
+    // αA*A*αB
+    // αA*αB
+    // A within B. B acts as a matte for A. A shows only where B is visible.
+    public static void ComposeIn(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposeIn", srcA, srcB, dst);
 
-		public static void ComposeOut(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // OUT
+    // αA*A*(1-αB)
+    // αA*(1-αB)
+    // A outside B. NOT-B acts as a matte for A. A shows only where B is not visible.
+    public static void ComposeOut(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposeOut", srcA, srcB, dst);
 
-		public static void ComposeAtop(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // ATOP
+    // αA*A*αB+(1- αA)* αB*B
+    // αA*αB+(1- αA)* αB
+    public static void ComposeAtop(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposeAtop", srcA, srcB, dst);
 
-		public static void ComposeXor(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // XOR
+    // αA*A*(1-αB)+(1- αA)* αB*B = lerp(aB * B, A * (1 - aB), aA) = lerp(aA * A, (1-aA)*B, aB)
+    // αA*(1-αB)+(1- αA)* αB =
+    // Combination of (A OUT B) and (B OUT A). A and B mutually exclude each other.
+    public static void ComposeXor(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposeXor", srcA, srcB, dst);
 
-		public static void ComposePlus(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // PLUS
+    // αA*A+αB*B
+    // αA+αB
+    // Blend without precedence
+    public static void ComposePlus(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposePlus", srcA, srcB, dst);
 
 }
