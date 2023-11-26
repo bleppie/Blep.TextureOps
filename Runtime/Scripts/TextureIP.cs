@@ -133,6 +133,23 @@ public static class TextureIP {
     public static void Erode(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Erode", src, dst);
 
+
+    // Test gathering pixels into groupshared memory. This is the same or slower
+    // than the simple approach on OSX/Metal, See comments in TextureIP.compute
+    public static void ErodeGather(Texture src, RenderTexture dst) {
+        compute.SetSize(src.width, src.height);
+        var kernel = compute.FindKernel("ErodeGather");
+        // Overlap tiles by 1 pixel each (2 pixels overlap), so process in groups of THREADS-2
+        compute.GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
+        xs -= 2;
+        ys -= 2;
+        int x = (src.width  + xs - 1) / xs; // Round up
+        int y = (src.height + ys - 1) / ys; // Round up
+        compute.shader.SetTexture(kernel, SrcAId, src);
+        compute.shader.SetTexture(kernel, DstId, dst);
+        compute.Dispatch(kernel, x, y);
+    }
+
     public static void Dilate(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Dilate", src, dst);
 

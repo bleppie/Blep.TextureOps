@@ -13,8 +13,8 @@ public class TextureTest : MonoBehaviour {
     public Vector2Int imageSize = new Vector2Int(4096, 4096);
     public GraphicsFormat imageFormat;
 
-    public Texture2D src;
-    public RenderTexture dst;
+    public Texture2D srcIn;
+    public RenderTexture dstOut;
 
     public int iterations = 1;
     public float startupPause = 1;
@@ -28,26 +28,27 @@ public class TextureTest : MonoBehaviour {
     public int height => _src.height;
 
     public void Awake() {
-        if (src != null) {
-            imageSize = new Vector2Int(src.width, src.height);
+        if (srcIn != null) {
+            imageSize = new Vector2Int(srcIn.width, srcIn.height);
         }
 
         _compute = new TextureCompute("Shaders/Blep/TextureTest");
-        _src = src ?? new Texture2D(imageSize.x, imageSize.y, imageFormat, 0);
-        _dst = dst ?? TextureCompute.GetTemporary(src);
-        _tmp = TextureCompute.GetTemporary(src);
+        _src = srcIn != null ? srcIn : new Texture2D(imageSize.x, imageSize.y, imageFormat, 0);
+        _dst = dstOut != null ? dstOut : TextureCompute.GetTemporary(_src);
+        _tmp = TextureCompute.GetTemporary(_src);
         _flush = new Texture2D(1, 1, _dst.graphicsFormat, 0);
         TextureMath.Set(_dst, Vector4.zero);
-        Debug.Log($"Done");
     }
 
     public IEnumerator Start() {
+        Debug.Log($"Starting");
         // Wait for startup
         yield return new WaitForSeconds(startupPause);
         //TestAccessSpeed();
         //TestReduce();
-        TestFormats();
-        //TestSave();
+        //TestFormats();
+        TestGatherSpeed();
+        Debug.Log($"Done");
     }
 
     // -------------------------------------------------------------------------------
@@ -84,7 +85,7 @@ public class TextureTest : MonoBehaviour {
         clock.Stop();
 
         var elapsed = (float) clock.Elapsed.TotalSeconds / iterations;
-        UnityEngine.Debug.Log($"{name}:\t{Mathf.RoundToInt(1.0f/elapsed)}Hz\t{elapsed}s");
+        UnityEngine.Debug.Log($"{name}:\t{Mathf.RoundToInt(1.0f/elapsed)} Hz\t{elapsed} s");
         return elapsed;
     }
 
@@ -102,6 +103,10 @@ public class TextureTest : MonoBehaviour {
         });
     }
 
+    public void TestGatherSpeed() {
+        _Measure("Erode Normal", () => { TextureIP.Erode(_src, _dst); });
+        _Measure("Erode Gather", () => { TextureIP.ErodeGather(_src, _dst); });
+    }
     public void TestAccessSpeed() {
         _MeasureKernel("TestIndex");
         _MeasureKernel("TestLoad");

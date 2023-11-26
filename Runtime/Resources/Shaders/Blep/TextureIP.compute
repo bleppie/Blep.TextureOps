@@ -10,6 +10,7 @@
 #pragma kernel FlipVertical
 #pragma kernel Rotate180
 #pragma kernel Erode
+#pragma kernel ErodeGather
 #pragma kernel Dilate
 #pragma kernel BlurGaussian
 #pragma kernel RecursiveConvolveFwd
@@ -170,6 +171,57 @@ void Rotate180(uint2 xy : SV_DispatchThreadID) {
 
 // -------------------------------------------------------------------------------
 // Morphology etc
+
+// Gather src pixels into groupshared memory before accessing.
+//
+// This is the same or slower with 32x32 threads than the simple approach on
+// OSX/Metal! Lowering the number of threads to 16x16 makes this about 25%
+// faster than the simple approach with 16x16 theads, but both are still slower
+// than 32x32 threads and the simple apprach. On a 4096x4096 image:
+//    32x32 Simple : 807 Hz *best*
+//          Gather : 586 Hz
+//    16x16 Simple : 553 Hz
+//          Gather : 720 Hz
+//     8x 8 Simple : 543 Hz
+//          Gather : 617 Hz
+
+groupshared float4 SrcGroup[THREADSY][THREADSX];
+
+[numthreads(THREADSX, THREADSY, 1)]
+void ErodeGather(uint2 group: SV_GroupID,
+                 uint2 xyGroup: SV_GroupThreadID,
+                 uint2 id : SV_DispatchThreadID) {
+
+    // Overlap tiles by 1 pixel each (2 pixels overlap), so process in groups of THREADS-2
+
+    // Offset xy to account for overlapping
+    uint2 xy = id - 1 - group;
+    float4 CTR = SrcA[clamp(xy, 0, TextureSize - 1)];
+
+    // Gather samples into groupshared memory
+    uint x = xyGroup.x;
+    uint y = xyGroup.y;
+    SrcGroup[y][x] = CTR;
+
+    // Wait for all threads to finish populating SrcGroup
+    GroupMemoryBarrierWithGroupSync();
+
+    // Process pixels, ignoring those on the border of the tile
+    if (all(xy < TextureSize &&
+            xyGroup > 0 && xyGroup < uint2(THREADSX-1, THREADSY-1))) {
+
+        CTR = min(CTR, SrcGroup[y - 1][x - 1]);
+        CTR = min(CTR, SrcGroup[y - 1][x    ]);
+        CTR = min(CTR, SrcGroup[y - 1][x + 1]);
+        CTR = min(CTR, SrcGroup[y    ][x - 1]);
+        CTR = min(CTR, SrcGroup[y    ][x + 1]);
+        CTR = min(CTR, SrcGroup[y + 1][x - 1]);
+        CTR = min(CTR, SrcGroup[y + 1][x    ]);
+        CTR = min(CTR, SrcGroup[y + 1][x + 1]);
+        Dst[xy] = CTR;
+    }
+}
+
 
 [numthreads(THREADSX, THREADSY, 1)]
 void Erode(uint2 xy : SV_DispatchThreadID) {
@@ -519,54 +571,6 @@ void SumReduce(uint2 xy : SV_DispatchThreadID) {
         Dst[xy] = SrcA[xy] + WE + NO + NW;
     }
 }
-
-/*
-// Cohesive memory access but requires two tmp buffers
-
-[numthreads(THREADSX, THREADSY, 1)]
-void MaxReduce(uint2 xy : SV_DispatchThreadID) {
-  if (all(xy < (TextureSize + 1) >> 1)) {
-    uint2 xySrc = xy * 2;
-    uint2 xySrcNW = min(xySrc + 1, TextureSize - 1);
-
-    float4 WE = SrcA[uint2(xySrcNW.x, xySrc  .y)];
-    float4 NO = SrcA[uint2(xySrc  .x, xySrcNW.y)];
-    float4 NW = SrcA[xySrcNW];
-
-    Dst[xy] = max(max(SrcA[xySrc], WE), max(NO, NW));
-  }
-}
-
-[numthreads(THREADSX, THREADSY, 1)]
-void MinReduce(uint2 xy : SV_DispatchThreadID) {
-  if (all(xy < (TextureSize + 1) >> 1)) {
-    uint2 xySrc = xy * 2;
-    uint2 xySrcNW = min(xySrc + 1, TextureSize - 1);
-
-    float4 WE = SrcA[uint2(xySrcNW.x, xySrc  .y)];
-    float4 NO = SrcA[uint2(xySrc  .x, xySrcNW.y)];
-    float4 NW = SrcA[xySrcNW];
-
-    Dst[xy] = min(min(SrcA[xySrc], WE), min(NO, NW));
-  }
-}
-
-[numthreads(THREADSX, THREADSY, 1)]
-void SumReduce(uint2 xy : SV_DispatchThreadID) {
-  if (all(xy < (TextureSize + 1) >> 1)) {
-    uint2 xySrc = xy * 2;
-    uint2 xySrcNW = xySrc + 1;
-
-    // TODO: Faster to use Load, which is guaranteed to return 0 out of bounds?
-    float4 WE = xySrcNW.x < TextureSize.x  ? SrcA[xySrc + uint2(1, 0)] : 0;
-    float4 NO = xySrcNW.y < TextureSize.y  ? SrcA[xySrc + uint2(0, 1)] : 0;
-    float4 NW = all(xySrcNW < TextureSize) ? SrcA[xySrcNW] : 0;
-
-    Dst[xy] = SrcA[xySrc.xy] + WE + NO + NW;
-  }
-}
-
-*/
 
 // -------------------------------------------------------------------------------
 // Composition
