@@ -99,7 +99,7 @@ public static class TextureMath {
 
     public static void Remap(Texture src, RenderTexture dst,
                              Vector4 fromMin, Vector4 fromMax,
-                             Vector4 toMin, Vector4 toMax) {
+                             Vector4 toMin, Vector4 toMax, bool saturate=false) {
         var fromDelta = (fromMax - fromMin);
         var toDelta = (toMax - toMin);
         var scale = new Vector4(fromDelta.x == 0 ? 0 : toDelta.x / fromDelta.x,
@@ -107,13 +107,13 @@ public static class TextureMath {
                                 fromDelta.z == 0 ? 0 : toDelta.z / fromDelta.z,
                                 fromDelta.w == 0 ? 0 : toDelta.w / fromDelta.w);
         var offset = toMin - Vector4.Scale(fromMin, scale);
-        TextureMath.MultiplyAdd(src, dst, scale, offset);
+        TextureMath.MultiplyAdd(src, dst, scale, offset, saturate);
     }
 
     public static void Remap(RenderTexture srcDst,
                              Vector4 fromMin, Vector4 fromMax,
-                             Vector4 toMin, Vector4 toMax) =>
-        Remap(srcDst, srcDst, fromMin, fromMax, toMin, toMax);
+                             Vector4 toMin, Vector4 toMax, bool saturate=false) =>
+        Remap(srcDst, srcDst, fromMin, fromMax, toMin, toMax, saturate);
 
 }
 
