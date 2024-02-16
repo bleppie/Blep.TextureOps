@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Diagnostics;
 using UnityEngine;
@@ -46,8 +47,8 @@ public class TextureTest : MonoBehaviour {
         yield return new WaitForSeconds(startupPause);
         //TestAccessSpeed();
         //TestReduce();
-        //TestFormats();
-        TestGatherSpeed();
+        TestFormats();
+        // TestGatherSpeed();
         Debug.Log($"Done");
     }
 
@@ -115,12 +116,16 @@ public class TextureTest : MonoBehaviour {
     }
 
     public void TestFormats() {
-        for (int i = 0; i < (int) TextureFormat.RGBA64; i++) {
-            var format = (TextureFormat) i;
-            if (int.TryParse(format.ToString(), out int x)) continue;
-            var gFormat = GraphicsFormatUtility.GetGraphicsFormat(format, false);
-            var rtFormat = TextureCompute.GetCompatibleRenderTextureFormat(gFormat);
-            Debug.Log($"{format} => {gFormat} => {rtFormat}");
+        foreach (TextureFormat tFormat in Enum.GetValues(typeof(TextureFormat))) {
+            var gFormat = GraphicsFormatUtility.GetGraphicsFormat(tFormat, false);
+            if ((int) gFormat < 0)
+                Debug.Log($"{tFormat} => BAD {gFormat}");
+            else {
+                var gFormatCompat = SystemInfo.GetCompatibleFormat(gFormat, FormatUsage.Render);
+                var rtFormat = GraphicsFormatUtility.GetRenderTextureFormat(gFormatCompat);
+                if (! Enum.IsDefined(typeof(RenderTextureFormat), rtFormat))
+                    Debug.Log($"{tFormat} \t => {gFormat} \t => {gFormatCompat} \t = \t <= BAD {rtFormat}");
+            }
         }
     }
 }

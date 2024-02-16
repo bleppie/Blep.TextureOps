@@ -71,23 +71,14 @@ public class TextureCompute {
 
     // Finds a RenderTextureFormat compatible with the given format
     public static RenderTextureFormat GetCompatibleRenderTextureFormat(GraphicsFormat format) {
-        // Annoying that there doesn't seem a better way to do this.
 
-        // Handle compressed formats
-        if (GraphicsFormatUtility.IsCompressedFormat(format)) {
-            format = GraphicsFormatUtility.IsHDRFormat(format)
-                ? GraphicsFormat.R32G32B32A32_SFloat
-                : GraphicsFormat.R8G8B8A8_UNorm;
-        }
+        // Convert to a compatible GraphicsFormat for rendering
+        var compatFormat = SystemInfo.GetCompatibleFormat(format, FormatUsage.Render);
 
-        // Render texture doesn't have a standard 3-channel format, so
-        // converting a typical R8G8B8_SRGB format will give an error. Add a
-        // alpha channel to make things work.
-        else if (GraphicsFormatUtility.GetComponentCount(format) == 3) {
-            format = GraphicsFormatUtility.ConvertToAlphaFormat(format);
-        }
+        // Convert to a RenderTextureFormat
+        var rtFormat = GraphicsFormatUtility.GetRenderTextureFormat(compatFormat);
 
-        return GraphicsFormatUtility.GetRenderTextureFormat(format);
+        return rtFormat;
     }
 
     // Creates a RenderTexture with the given size and format
