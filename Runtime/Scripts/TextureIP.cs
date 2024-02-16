@@ -189,7 +189,11 @@ public static class TextureIP {
                                     RenderTexture tmp_=null) {
         var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
 
-        if (sigma < 0) sigma = sigma = size / 4;
+        // Copying what OpenCV does: sigma = 0.3*((size-1)*0.5 - 1) + 0.8 = 0.35*size + 0.35
+        // https://docs.opencv.org/2.4/modules/imgproc/doc/filtering.html#getgaussiankernel
+        // Interesting explanation here:
+        // https://stackoverflow.com/questions/14060017/calculate-the-gaussian-filters-sigma-using-the-kernels-size
+        if (sigma <= 0) sigma = 0.15f * size + 0.35f;
 
         Vector4 incGauss;
         incGauss.x = 1.0f / (Mathf.Sqrt(2.0f * 3.1415f) * sigma);
@@ -227,7 +231,7 @@ public static class TextureIP {
         int xs, ys;
         compute.GetKernelThreadGroupSizes(fwdKernel, out xs, out ys);
         int threadsX = (src.height + xs - 1) / xs;
-        int threadsY = (src.width  + xs - 1) / xs;
+        int threadsY = (src.width  + ys - 1) / ys;
 
         // Because of the way texture data is stored, it's faster to access
         // pixels by rows than by columns. So, rather than convolving each row
