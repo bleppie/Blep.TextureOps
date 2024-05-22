@@ -14,7 +14,7 @@ public class TextureOpsExample : MonoBehaviour {
     public float test = 10;
 
     public IEnumerator Start() {
-        var wait = new WaitForSeconds(1);
+        var wait = new WaitForSeconds(0.5f);
 
         var tmp = TextureCompute.GetTemporary(dst);
 
@@ -23,31 +23,45 @@ public class TextureOpsExample : MonoBehaviour {
             //// Draw
 
             TextureDraw.Circle(src, dst, new Color(1, 0, 0, 0.5f),
-                               new Vector2(src.width/2, src.height/2), src.height/4, 20);
+                new Vector2(src.width/2, src.height/2), src.height/4, 20);
             yield return wait;
 
-            TextureDraw.Line(dst, new Color(0, 0, 1, 0.5f),
-                             new Vector2(100, 100), new Vector2(src.width - 100, src.height - 100),
-                             20, 1);
+            TextureDraw.Circle(dst, new Color(0, 1, 0, 0.5f),
+                new Vector2(src.width/4, src.height/4), src.height/8, 2);
             yield return wait;
 
-            TextureDraw.Border(dst, new Color(1f, 0, 1f, 0.5f), 20, 5);
+            TextureDraw.Line(src, dst, new Color(1, 0, 0, 0.5f),
+                new Vector2(100, 100), new Vector2(src.width - 100, src.height - 100),
+                20, 1);
+            yield return wait;
+
+            TextureDraw.Line(dst, new Color(0, 1, 0, 0.5f),
+                new Vector2(src.width - 100, 100), new Vector2(100, src.height - 100),
+                20, 1);
+            yield return wait;
+
+            TextureDraw.Border(src, dst, new Color(1, 0, 0, 0.5f), 40, 5);
+            yield return wait;
+
+            TextureDraw.Border(dst, new Color(0, 1, 0, 0.5f), 20, 5);
             yield return wait;
 
 
             //// Math
 
+            TextureMath.Copy(src, dst);
+            yield return wait;
 
             var minColor = TextureIP.Min(src);
             var maxColor = TextureIP.Max(src);
             TextureMath.Set(dst, (minColor + maxColor) * 0.5f);
             yield return wait;
 
-            TextureMath.SetMasked(dst, maxColor, overlay1);
+            TextureMath.SetMasked(dst, maxColor, overlay2);
             yield return wait;
 
             TextureIP.FlipHorizontal(src, dst);
-            TextureMath.Lerp(src, dst, dst, 0.5f);
+            TextureMath.Lerp(overlay1, overlay2, dst, 0.5f);
             yield return wait;
 
             TextureMath.Clamp(src, dst, Vector4.one * 0.3f, Vector4.one * 0.7f);
@@ -94,13 +108,16 @@ public class TextureOpsExample : MonoBehaviour {
             TextureIP.ConvertRGB2HSV(src, dst);
             yield return wait;
 
-            TextureIP.ConvertHSV2RGB(dst, dst);
+            TextureIP.ConvertHSV2RGB(dst);
             yield return wait;
 
             TextureIP.EqualizeHistogram(src, dst);
             yield return wait;
 
             TextureIP.Swizzle(src, dst, "bgra");
+            yield return wait;
+
+            TextureIP.Swizzle(dst, "rrra");
             yield return wait;
 
             TextureIP.Grayscale(src, dst);
@@ -142,9 +159,11 @@ public class TextureOpsExample : MonoBehaviour {
             TextureIP.BlurGaussian(src, dst, 25, -1);
             yield return wait;
 
-            TextureIP.BlurGaussianRecursive(src, dst, 10);
-            yield return wait;
+            for (int i = 1; i <= 21; i += 4) {
+                TextureIP.BlurGaussianRecursive(src, dst, i);
+                yield return wait;
 
+            }
         }
 
     }

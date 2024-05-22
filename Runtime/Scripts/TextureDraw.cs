@@ -16,7 +16,8 @@ public static class TextureDraw {
 
     public static void Circle(Texture src, RenderTexture dst, Vector4 color,
                               Vector2 center, float radius, float falloff=0) =>
-        compute.UnaryOp("Circle", src, dst, color,
+        compute.UnaryOp("Circle", "CircleI",
+                        src, dst, color,
                         new Vector4(center.x, center.y, radius, falloff));
 
     public static void Circle(RenderTexture srcDst,
@@ -26,7 +27,8 @@ public static class TextureDraw {
 
     public static void Line(Texture src, RenderTexture dst, Vector4 color,
                             Vector2 p0, Vector2 p1, float width, float falloff=0) =>
-        compute.UnaryOp("Line", src, dst, color,
+        compute.UnaryOp("Line", "LineI",
+                        src, dst, color,
                         new Vector4(p0.x, p0.y, p1.x, p1.y),
                         new Vector2(width, falloff));
 
@@ -37,7 +39,8 @@ public static class TextureDraw {
 
     public static void Border(Texture src, RenderTexture dst, Vector4 color,
                               float width, float falloff=0) =>
-        compute.UnaryOp("Border", src, dst, color, new Vector2(width, falloff));
+        compute.UnaryOp("Border", "BorderI",
+                        src, dst, color, new Vector2(width, falloff));
 
     public static void Border(RenderTexture srcDst, Vector4 color,
                               float width, float falloff=0) =>

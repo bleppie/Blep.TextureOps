@@ -25,42 +25,41 @@ public static class TextureIP {
     // Color conversion
 
     public static void Grayscale(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Grayscale", src, dst);
+        compute.UnaryOp("Grayscale", "GrayscaleI", src, dst);
 
     public static void Grayscale(RenderTexture srcDst) =>
         Grayscale(srcDst, srcDst);
 
-
     public static void GrayscaleGamma(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("GrayscaleGamma", src, dst);
+        compute.UnaryOp("GrayscaleGamma", "GrayscaleGammaI", src, dst);
 
     public static void GrayscaleGamma(RenderTexture srcDst) =>
         GrayscaleGamma(srcDst, srcDst);
 
 
     public static void Threshold(Texture src, RenderTexture dst, Vector4 threshold) =>
-        compute.UnaryOp("Threshold", src, dst, threshold);
+        compute.UnaryOp("Threshold", "ThresholdI", src, dst, threshold);
 
     public static void Threshold(RenderTexture srcDst, Vector4 threshold) =>
         Threshold(srcDst, srcDst, threshold);
 
 
     public static void ConvertRGB2HSV(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("ConvertRGB2HSV", src, dst);
+        compute.UnaryOp("ConvertRGB2HSV", "ConvertRGB2HSVI", src, dst);
 
     public static void ConvertRGB2HSV(RenderTexture srcDst) =>
         ConvertRGB2HSV(srcDst, srcDst);
 
 
     public static void ConvertHSV2RGB(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("ConvertHSV2RGB", src, dst);
+        compute.UnaryOp("ConvertHSV2RGB", "ConvertHSV2RGBI", src, dst);
 
-    public static void ConvertHSFV2RGB(RenderTexture srcDst) =>
+    public static void ConvertHSV2RGB(RenderTexture srcDst) =>
         ConvertHSV2RGB(srcDst, srcDst);
 
 
     public static void Swizzle(Texture src, RenderTexture dst, Vector4 channels) =>
-        compute.UnaryOp("Swizzle", src, dst, channels);
+        compute.UnaryOp("Swizzle", "SwizzleI", src, dst, channels);
 
     public static void Swizzle(RenderTexture srcDst, Vector4 channels) =>
         Swizzle(srcDst, srcDst, channels);
@@ -85,7 +84,7 @@ public static class TextureIP {
 
 
     public static void Lookup(Texture src, RenderTexture dst, Texture pallete) =>
-        compute.BinaryOp("Lookup", src, pallete, dst);
+        compute.BinaryOp("Lookup", "LookupI", src, pallete, dst);
 
     public static void Lookup(RenderTexture srcDst, Texture pallete) =>
         Lookup(srcDst, srcDst, pallete);
@@ -111,20 +110,11 @@ public static class TextureIP {
     public static void FlipHorizontal(Texture src, RenderTexture dst) =>
         compute.UnaryOp("FlipHorizontal", src, dst);
 
-    public static void FlipHorizontal(RenderTexture srcDst) =>
-        FlipHorizontal(srcDst, srcDst);
-
     public static void FlipVertical(Texture src, RenderTexture dst) =>
         compute.UnaryOp("FlipVertical", src, dst);
 
-    public static void FlipVertical(RenderTexture srcDst) =>
-        FlipVertical(srcDst, srcDst);
-
     public static void Rotate180(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Rotate180", src, dst);
-
-    public static void Rotate180(RenderTexture srcDst) =>
-        Rotate180(srcDst, srcDst);
 
 
     // -------------------------------------------------------------------------------
@@ -216,13 +206,15 @@ public static class TextureIP {
 
     public static void RecursiveConvolve(Texture src, RenderTexture dst,
                                          Vector4 coeffs, RenderTexture tmp_=null) {
+        // Size of tmp is transposed size of src/dst
         // TODO: is there a way to reinterpret a RenderTexture's dimensions?
         Debug.Assert(tmp_ == null || (tmp_.width >= src.height && tmp_.height >= src.width),
                      "RecursiveConvolve requires a temporary buffer with transposed (height, width) dimensions");
         var tmp = tmp_ ?? TextureCompute.GetTemporary(dst.height, dst.width, dst.graphicsFormat);
 
         var shader = compute.shader;
-        var fwdKernel = compute.FindKernel("RecursiveConvolveFwd");
+        var fwdKernelI = compute.FindKernel("RecursiveConvolveFwdI"); // In-place fwd kernel
+        var fwdKernel = src == dst ? fwdKernelI : compute.FindKernel("RecursiveConvolveFwd");
         var bakKernel = compute.FindKernel("RecursiveConvolveBak");
 
         shader.SetVector(ScalarAId, coeffs);
@@ -255,9 +247,9 @@ public static class TextureIP {
         compute.SetSize(src.height, src.width);
 
         // Convolve forward tmp -> tmp
-        shader.SetTexture(fwdKernel, SrcAId, tmp);
-        shader.SetTexture(fwdKernel, DstId, tmp);
-        compute.Dispatch(fwdKernel, threadsY, 1);
+        shader.SetTexture(fwdKernelI, SrcAId, tmp);
+        shader.SetTexture(fwdKernelI, DstId, tmp);
+        compute.Dispatch(fwdKernelI, threadsY, 1);
 
         // Convolve backward and transpose tmp -> dst
         shader.SetTexture(bakKernel, SrcAId, tmp);
@@ -383,24 +375,22 @@ public static class TextureIP {
         int kernel = compute.FindKernel(kernelName);
         var shader = compute.shader;
 
+        // The kernels work in place, so copy src to tmp
+        TextureMath.Copy(src, tmp);
+        shader.SetTexture(kernel, DstId, tmp);
+
         int width = src.width;
         int height = src.height;
-
-        shader.SetTexture(kernel, SrcAId, src);;
 
         while (width > 1 && height > 1) {
             int halfWidth  = (width  + 1) >> 1;
             int halfHeight = (height + 1) >> 1;
 
             compute.SetSize(width, height);
-            shader.SetTexture(kernel, DstId, tmp);
             compute.GetKernelThreadGroups(kernel, halfWidth, halfHeight, out int xg, out int yg);
             compute.Dispatch(kernel, xg, yg);
             width  = halfWidth;
             height = halfHeight;
-
-            // Work in-place after the first iteration
-            shader.SetTexture(kernel, SrcAId, tmp);;
         }
 
         // Read pixel at 0, 0 // TODO/SPEED: cache this mini texture

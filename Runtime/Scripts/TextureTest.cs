@@ -38,10 +38,10 @@ public class TextureTest : MonoBehaviour {
         _dst = dstOut != null ? dstOut : TextureCompute.GetTemporary(_src);
         _tmp = TextureCompute.GetTemporary(_src);
         _flush = new Texture2D(1, 1, _dst.graphicsFormat, 0);
-        TextureMath.Set(_dst, Vector4.zero);
     }
 
     public IEnumerator Start() {
+        TextureMath.Set(_dst, Vector4.zero);
         Debug.Log($"Starting");
         // Wait for startup
         yield return new WaitForSeconds(startupPause);

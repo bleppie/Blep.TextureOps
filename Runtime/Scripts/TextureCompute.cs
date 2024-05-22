@@ -149,9 +149,9 @@ public class TextureCompute {
                          Texture srcA, Texture srcB, RenderTexture dst,
                          Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) {
 
-        SetSize(srcA.width, srcA.height);
+        SetSize(dst.width, dst.height);
 
-        shader.SetTexture(kernel, SrcAId, srcA);
+        if (srcA != null) shader.SetTexture(kernel, SrcAId, srcA);
         if (srcB != null) shader.SetTexture(kernel, SrcBId, srcB);
 
         if (scalarA.HasValue) shader.SetVector(ScalarAId, scalarA.Value);
@@ -163,20 +163,44 @@ public class TextureCompute {
         Dispatch(kernel);
     }
 
-    public void UnaryOp(int kernel,
-                        Texture src, RenderTexture dst,
-                        Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
-        BinaryOp(kernel, src, null, dst, scalarA, scalarB, scalarC);
-
     public void BinaryOp(string kernelName,
                          Texture srcA, Texture srcB, RenderTexture dst,
                          Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
         BinaryOp(FindKernel(kernelName), srcA, srcB, dst, scalarA, scalarB, scalarC);
 
-    public void UnaryOp(string kernelName,
-                        Texture srcA, RenderTexture dst,
+
+    public void BinaryOp(string kernelName, string inplaceKernelName,
+                         Texture srcA, Texture srcB, RenderTexture dst,
+                         Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) {
+        if (srcA != dst) {
+            BinaryOp(kernelName, srcA, srcB, dst, scalarA, scalarB, scalarC);
+        }
+        else {
+            BinaryOp(inplaceKernelName, null, srcB, dst, scalarA, scalarB, scalarC);
+        }
+    }
+
+
+    public void UnaryOp(int kernel,
+                        Texture src, RenderTexture dst,
                         Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
-        UnaryOp(FindKernel(kernelName), srcA, dst, scalarA, scalarB, scalarC);
+        BinaryOp(kernel, src, null, dst, scalarA, scalarB, scalarC);
+
+    public void UnaryOp(string kernelName,
+                        Texture src, RenderTexture dst,
+                        Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) =>
+        UnaryOp(FindKernel(kernelName), src, dst, scalarA, scalarB, scalarC);
+
+    public void UnaryOp(string kernelName, string inplaceKernelName,
+                        Texture src, RenderTexture dst,
+                        Vector4? scalarA=null, Vector4? scalarB=null, Vector4? scalarC=null) {
+        if (src != dst) {
+            UnaryOp(kernelName, src, dst, scalarA, scalarB, scalarC);
+        }
+        else {
+            UnaryOp(inplaceKernelName, null, dst, scalarA, scalarB, scalarC);
+        }
+    }
 }
 
 }

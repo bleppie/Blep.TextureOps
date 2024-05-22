@@ -1,7 +1,10 @@
 #include "TextureCommon.hlsl"
 #pragma kernel Circle
+#pragma kernel CircleI
 #pragma kernel Line
+#pragma kernel LineI
 #pragma kernel Border
+#pragma kernel BorderI
 
 Texture2D<float4> SrcA;
 Texture2D<float4> SrcB;
@@ -11,30 +14,29 @@ float4 ScalarC;
 RWTexture2D<float4> Dst;
 
 // Sets dst color based on distance to edge and falloff
-void SetColor(uint2 xy, float4 color, float d, float falloff) {
-    float alpha = color.a * smoothstep(0, -falloff, d);
-    Dst[xy] = lerp(SrcA[xy], float4(color.rgb, 1), alpha);
+float4 GetColor(float4 srcColor, float4 color, float sdf, float falloff) {
+    float alpha = color.a * smoothstep(0, -falloff, sdf);
+    return lerp(srcColor, float4(color.rgb, 1), alpha);
 }
 
 
 // Sets dst to ScalarA in the circle described by ScalarB (ctr.x, ctr.y, rad, falloff)
-[numthreads(THREADSX, THREADSY, 1)]
-void Circle(uint2 xy : SV_DispatchThreadID) {
+void Circle(uint2 xy, float4 srcColor) {
     if (InRange(xy)) {
+        float4 color = ScalarA;
         float2 center = ScalarB.xy;
         float radius = ScalarB.z;
         float falloff = ScalarB.w;
-        float d = distance(xy, center);
-
-        SetColor(xy, ScalarA, d - radius, falloff);
+        float sdf = distance(xy, center) - radius;
+        Dst[xy] = GetColor(srcColor, color, sdf, falloff);
     }
 }
 
 // Sets dst to ScalarA in the line described by ScalarB (p.x, p.y, q.x, q.y)
 // with width and falloff in ScalarC
-[numthreads(THREADSX, THREADSY, 1)]
-void Line(uint2 xy : SV_DispatchThreadID) {
+void Line(uint2 xy, float4 srcColor) {
     if (InRange(xy)) {
+        float4 color = ScalarA;
         float2 p = ScalarB.xy;
         float2 q = ScalarB.zw;
         float halfWidth = ScalarC.x * 0.5f;
@@ -45,23 +47,55 @@ void Line(uint2 xy : SV_DispatchThreadID) {
         float lenSqr = dot(pq, pq);
         float t = lenSqr < 0.0000001f ? 0 : dot(xy - q, pq) / lenSqr;
         float2 closest = q + saturate(t) * pq;
-        float d = distance(xy, closest);
+        float sdf = distance(xy, closest) - halfWidth;
 
-        SetColor(xy, ScalarA, d - halfWidth, falloff);
+        Dst[xy] = GetColor(srcColor, color, sdf, falloff);
     }
 }
 
 // Sets dst to ScalarA along the border described by ScalarB (width, falloff)
-[numthreads(THREADSX, THREADSY, 1)]
-void Border(uint2 xy : SV_DispatchThreadID) {
+void Border(uint2 xy, float4 srcColor) {
     if (InRange(xy)) {
+        float4 color = ScalarA;
         float width = ScalarB.x;
         float falloff = ScalarB.y;
 
         float2 halfSize = (TextureSize.xy - 1) * 0.5;
         float2 d2 = halfSize - abs(xy - halfSize);
-        float d = min(d2.x, d2.y);
+        float sdf = min(d2.x, d2.y) - width;
 
-        SetColor(xy, ScalarA, d - width, falloff);
+        Dst[xy] = GetColor(srcColor, color, sdf, falloff);
     }
+}
+
+// ------------------------------------------------------------------------------------------
+
+[numthreads(THREADSX, THREADSY, 1)]
+void Circle(uint2 xy : SV_DispatchThreadID) {
+    Circle(xy, SrcA[xy]);
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void CircleI(uint2 xy : SV_DispatchThreadID) {
+    Circle(xy, Dst[xy]);
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void Line(uint2 xy : SV_DispatchThreadID) {
+    Line(xy, SrcA[xy]);
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void LineI(uint2 xy : SV_DispatchThreadID) {
+    Line(xy, Dst[xy]);
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void Border(uint2 xy : SV_DispatchThreadID) {
+    Border(xy, SrcA[xy]);
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void BorderI(uint2 xy : SV_DispatchThreadID) {
+    Border(xy, Dst[xy]);
 }

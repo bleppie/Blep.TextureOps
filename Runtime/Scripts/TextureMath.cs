@@ -16,27 +16,29 @@ public static class TextureMath {
 
     // For consistency
     public static void Copy(Texture src, RenderTexture dst) =>
-        Graphics.CopyTexture(src, dst);
-
+        Graphics.Blit(src, dst);
 
     public static void Set(RenderTexture dst, Vector4 value) =>
-        compute.UnaryOp("SetC", dst, dst, value);
+        compute.UnaryOp("SetC", null, dst, value);
 
     public static void SetMasked(Texture src, RenderTexture dst, Vector4 value, Vector4 mask) =>
-        compute.UnaryOp("SetCMaskedC", src, dst, value, mask);
+        compute.UnaryOp("SetCMaskedC", "SetCMaskedCI",
+                        src, dst, value, mask);
 
     public static void SetMasked(RenderTexture srcDst, Vector4 value, Vector4 mask) =>
         SetMasked(srcDst, srcDst, value, mask);
 
     public static void SetMasked(Texture src, RenderTexture dst, Vector4 value, Texture mask) =>
-        compute.BinaryOp("SetCMasked", src, mask, dst, value);
+        compute.BinaryOp("SetCMasked", "SetCMaskedI",
+                         src, mask, dst, value);
 
     public static void SetMasked(RenderTexture srcDst, Vector4 value, Texture mask) =>
         SetMasked(srcDst, srcDst, value, mask);
 
 
     public static void Add(Texture src, RenderTexture dst, Vector4 value) =>
-        compute.UnaryOp("AddC", src, dst, value);
+        compute.UnaryOp("AddC", "AddCI",
+                        src, dst, value);
 
     public static void Add(RenderTexture srcDst, Vector4 value) =>
         Add(srcDst, srcDst, value);
@@ -61,7 +63,8 @@ public static class TextureMath {
 
 
     public static void Multiply(Texture src, RenderTexture dst, Vector4 value) =>
-        compute.UnaryOp("MultiplyC", src, dst, value);
+        compute.UnaryOp("MultiplyC", "MultiplyCI",
+                        src, dst, value);
 
     public static void Multiply(RenderTexture srcDst, Vector4 value) =>
         Multiply(srcDst, srcDst, value);
@@ -73,9 +76,11 @@ public static class TextureMath {
     public static void MultiplyAdd(Texture src, RenderTexture dst,
                                    Vector4 scale, Vector4 offset, bool saturate=false) {
         if (saturate)
-            compute.UnaryOp("MultiplyCAddCSat", src, dst, scale, offset);
+            compute.UnaryOp("MultiplyCAddCSat", "MultiplyCAddCSatI",
+                            src, dst, scale, offset);
         else
-            compute.UnaryOp("MultiplyCAddC", src, dst, scale, offset);
+            compute.UnaryOp("MultiplyCAddC", "MultiplyCAddCI",
+                            src, dst, scale, offset);
     }
 
     public static void MultiplyAdd(RenderTexture srcDst,
@@ -84,14 +89,16 @@ public static class TextureMath {
 
 
     public static void Clamp(Texture src, RenderTexture dst, Vector4 min, Vector4 max) =>
-        compute.UnaryOp("Clamp", src, dst, min, max);
+        compute.UnaryOp("Clamp", "ClampI",
+                        src, dst, min, max);
 
     public static void Clamp(RenderTexture srcDst, Vector4 min, Vector4 max) =>
         Clamp(srcDst, srcDst, min, max);
 
 
     public static void Saturate(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Saturate", src, dst);
+        compute.UnaryOp("Saturate", "SaturateI",
+                        src, dst);
 
     public static void Saturate(RenderTexture srcDst) =>
         Saturate(srcDst, srcDst);
