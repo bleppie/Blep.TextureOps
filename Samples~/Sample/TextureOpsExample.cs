@@ -10,47 +10,56 @@ public class TextureOpsExample : MonoBehaviour {
     public Texture2D gradient;
     public RenderTexture dst;
 
-    [Range(1,100)]
-    public float test = 10;
+    [Range(0,100)]
+    public float test;
 
     public IEnumerator Start() {
+        var shortWait = new WaitForSeconds(0.1f);
         var wait = new WaitForSeconds(0.5f);
 
+        float width = src.width;
+        float height = src.height;
         var tmp = TextureCompute.GetTemporary(dst);
 
         while (true) {
 
             //// Draw
 
-            TextureDraw.Circle(src, dst, new Color(1, 0, 0, 0.5f),
-                new Vector2(src.width/2, src.height/2), src.height/4, 20);
-            yield return wait;
-
-            TextureDraw.Circle(dst, new Color(0, 1, 0, 0.5f),
-                new Vector2(src.width/4, src.height/4), src.height/8, 2);
-            yield return wait;
-
-            TextureDraw.Line(src, dst, new Color(1, 0, 0, 0.5f),
-                new Vector2(100, 100), new Vector2(src.width - 100, src.height - 100),
-                20, 1);
-            yield return wait;
-
-            TextureDraw.Line(dst, new Color(0, 1, 0, 0.5f),
-                new Vector2(src.width - 100, 100), new Vector2(100, src.height - 100),
-                20, 1);
-            yield return wait;
-
-            TextureDraw.Border(src, dst, new Color(1, 0, 0, 0.5f), 40, 5);
-            yield return wait;
-
-            TextureDraw.Border(dst, new Color(0, 1, 0, 0.5f), 20, 5);
-            yield return wait;
-
-
-            //// Math
-
             TextureMath.Copy(src, dst);
             yield return wait;
+
+            for (int i = 0; i < 25; i++) {
+                var center = new Vector2(width * Random.Range(0.2f, 0.8f), height * Random.Range(0.2f, 0.8f));
+                var size   = new Vector2(width * Random.Range(0.1f, 0.3f), height * Random.Range(0.1f, 0.3f));
+                var hasOutline = Random.value > 0.5f;
+                var hasFill = ! hasOutline || Random.value > 0.5f;
+                var fillColor = hasFill ? Random.ColorHSV() : Color.clear;
+                var outlineWidth = hasOutline ? Random.Range(2, 20): 0;
+                var outlineColor = hasOutline ? Random.ColorHSV() : Color.clear;
+
+                switch (i % 4) {
+                    case 0:
+                        TextureDraw.Circle(dst, center, size.x,
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                    case 1:
+                        TextureDraw.Ellipse(dst, center, size,
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                    case 2:
+                        TextureDraw.Rectangle(dst, new Rect(center, size),
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                    case 3:
+                        TextureDraw.Line( dst, center - size/2, center + size/2,
+                            outlineWidth + Random.Range(1, 10),
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                }
+                yield return shortWait;
+            }
+
+            //// Math
 
             var minColor = TextureIP.Min(src);
             var maxColor = TextureIP.Max(src);

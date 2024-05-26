@@ -66,7 +66,7 @@ public class TextureTest : MonoBehaviour {
             TextureMath.Set(_dst, Vector4.one * 0.5f);
             var pos = new Vector2(Random.Range(0, imageSize.x),
                                   Random.Range(0, imageSize.y));
-            TextureDraw.Circle(_dst, new Vector4(0.3f, 0.8f, 0.5f, 1.0f), pos, 2, 0);
+//            TextureDraw.Circle(_dst, new Vector4(0.3f, 0.8f, 0.5f, 1.0f), pos, 2, 0);
             var min = TextureIP.Min(_dst);
             var max = TextureIP.Max(_dst);
             if (min.x != 0.3f) Debug.Log($"Bad min {min} {pos}");

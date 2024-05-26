@@ -154,8 +154,7 @@ public static class TextureIP {
             compute.UnaryOp(kernel, tmp, dst, Vector4.one);
         }
 
-        // TODO: be consistent with erode/dilate
-        TextureDraw.Border(dst, Vector4.zero, 1);
+        // TODO: be consistent around edges with erode/dilate
 
         if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
