@@ -2,9 +2,9 @@ Blep.TextureOps
 ===============
 
 **Blep.TextureOps** is a Unity plugin that allows you to manipulate Textures
-using compute shaders. Note: This has been tested on OSX/Metal only, but should
-work on all platforms that support compute shaders. If there are problems,
-please let me know.
+using compute shaders. Note: This has been tested nostly on OSX/Metal, but
+should work on all platforms that support compute shaders. If there are
+problems, please let me know.
 
 Static classes provide all the functionality, for example:
 * `TextureMath.Add(srcA, srcB, dst)`
@@ -47,8 +47,9 @@ Supported Operations
 ### Drawing
 
 * Circle
+* Ellipse
+* Rectagle
 * Line
-* Border
 
 ### Image Processing
 
