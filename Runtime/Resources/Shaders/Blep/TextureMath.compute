@@ -8,6 +8,7 @@
 #pragma kernel AddCI
 #pragma kernel Add
 #pragma kernel AddWeighted
+#pragma kernel AddWeightedI
 #pragma kernel MultiplyC
 #pragma kernel MultiplyCI
 #pragma kernel Multiply
@@ -102,6 +103,13 @@ void AddWeighted(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
         Dst[xy] = SrcA[xy] * ScalarA + SrcB[xy] * ScalarB;
     }
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void AddWeightedI(uint2 xy : SV_DispatchThreadID) {
+  if (InRange(xy)) {
+    Dst[xy] = Dst[xy] * ScalarA + SrcB[xy] * ScalarB;
+  }
 }
 
 [numthreads(THREADSX, THREADSY, 1)]

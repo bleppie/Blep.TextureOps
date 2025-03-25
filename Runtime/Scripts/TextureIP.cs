@@ -174,7 +174,7 @@ public static class TextureIP {
     // Blurring
 
     public static void BlurGaussian(Texture src, RenderTexture dst,
-                                    float size, float sigma,
+                                    float size, float sigma=-1,
                                     RenderTexture tmp_=null) {
         var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
 
@@ -198,8 +198,8 @@ public static class TextureIP {
     }
 
     public static void BlurGaussian(RenderTexture srcDst,
-                                    float size, float sigma,
-                                    RenderTexture tmp) =>
+                                    float size, float sigma=-1,
+                                    RenderTexture tmp=null) =>
         BlurGaussian(srcDst, srcDst, size, sigma, tmp);
 
 

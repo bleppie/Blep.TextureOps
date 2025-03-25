@@ -2,6 +2,10 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using Blep;
 
+#if ! UNITY_6000
+using GraphicsFormatUsage = UnityEngine.Experimental.Rendering.FormatUsage;
+#endif
+
 namespace Blep.TextureOps {
 
 public class TextureCompute {
@@ -26,6 +30,10 @@ public class TextureCompute {
         if (shader == null) {
             throw new System.IO.FileNotFoundException(shaderName);
         }
+    }
+
+    public TextureCompute(ComputeShader shader) {
+        this.shader = shader;
     }
 
     public int FindKernel(string name) =>
@@ -70,11 +78,13 @@ public class TextureCompute {
         shader.SetVector(TexelSizeId, new Vector2(1.0f / width, 1.0f / height));
     }
 
+    // -------------------------------------------------------------------------------
+
     // Finds a RenderTextureFormat compatible with the given format
     public static RenderTextureFormat GetCompatibleRenderTextureFormat(GraphicsFormat format) {
 
         // Convert to a compatible GraphicsFormat for rendering
-        var compatFormat = SystemInfo.GetCompatibleFormat(format, FormatUsage.Render);
+        var compatFormat = SystemInfo.GetCompatibleFormat(format, GraphicsFormatUsage.Render);
 
         // Convert to a RenderTextureFormat
         var rtFormat = GraphicsFormatUtility.GetRenderTextureFormat(compatFormat);
@@ -83,14 +93,17 @@ public class TextureCompute {
     }
 
     // Creates a RenderTexture with the given size and format
-    public static RenderTexture CreateRenderTexture(int width, int height, GraphicsFormat format) {
-        var rtFormat = GetCompatibleRenderTextureFormat(format);
-        var rt = new RenderTexture(width, height, 0, rtFormat);
+    public static RenderTexture CreateRenderTexture(int width, int height, RenderTextureFormat format) {
+        var rt = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear);
         rt.enableRandomWrite = true;
         return rt;
     }
 
-    // Creates a RenderTexture with the same size as the given texture and with the given format
+    // Creates a RenderTexture with the given size and format
+    public static RenderTexture CreateRenderTexture(int width, int height, GraphicsFormat format) =>
+        CreateRenderTexture(width, height, GetCompatibleRenderTextureFormat(format));
+
+    // Creates a RenderTexture with the same size as the given texture and with the given format 
     public static RenderTexture CreateRenderTexture(Texture src, GraphicsFormat format) =>
         CreateRenderTexture(src.width, src.height, format);
 
@@ -110,12 +123,21 @@ public class TextureCompute {
     }
 
     // Returns a temporary RenderTexture with the given size and format
-    public static RenderTexture GetTemporary(int width, int height, GraphicsFormat format) {
-        var rtFormat = GetCompatibleRenderTextureFormat(format);
-        var rt = RenderTexture.GetTemporary(width, height, 0, rtFormat);
+    public static RenderTexture GetTemporary(int width, int height, RenderTextureFormat format) {
+        var rt = RenderTexture.GetTemporary(width, height, 0, format,
+                                            RenderTextureReadWrite.Linear);
         rt.enableRandomWrite = true;
         return rt;
     }
+
+    // Returns a temporary RenderTexture with the given size and format
+    public static RenderTexture GetTemporary(int width, int height, GraphicsFormat format) =>
+        GetTemporary(width, height, GetCompatibleRenderTextureFormat(format));
+
+    // Returns a temporary RenderTexture with the same size as the given texture
+    // and with the given format
+    public static RenderTexture GetTemporary(Texture src, RenderTextureFormat format) =>
+        GetTemporary(src.width, src.height, format);
 
     // Returns a temporary RenderTexture with the same size as the given texture
     // and with the given format

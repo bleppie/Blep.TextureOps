@@ -49,11 +49,12 @@ public static class TextureMath {
 
     public static void AddWeighted(Texture srcA, Texture srcB, RenderTexture dst,
                                    Vector4 weightA, Vector4 weightB) =>
-        compute.BinaryOp("AddWeighted", srcA, srcB, dst, weightA, weightB);
+        compute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
+                         weightA, weightB);
 
     public static void AddWeighted(Texture srcA, Texture srcB, RenderTexture dst,
                                    float weightA, float weightB) =>
-        compute.BinaryOp("AddWeighted", srcA, srcB, dst,
+        compute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
                          new Vector4(weightA, weightA, weightA, weightA),
                          new Vector4(weightB, weightB, weightB, weightB));
 

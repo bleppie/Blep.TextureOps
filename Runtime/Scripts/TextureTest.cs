@@ -7,6 +7,10 @@ using UnityEngine.Experimental.Rendering;
 using Random = UnityEngine.Random;
 using Debug = UnityEngine.Debug;
 
+#if ! UNITY_6000
+using GraphicsFormatUsage = UnityEngine.Experimental.Rendering.FormatUsage;
+#endif
+
 namespace Blep.TextureOps {
 
 public class TextureTest : MonoBehaviour {
@@ -121,7 +125,7 @@ public class TextureTest : MonoBehaviour {
             if ((int) gFormat < 0)
                 Debug.Log($"{tFormat} => BAD {gFormat}");
             else {
-                var gFormatCompat = SystemInfo.GetCompatibleFormat(gFormat, FormatUsage.Render);
+                var gFormatCompat = SystemInfo.GetCompatibleFormat(gFormat, GraphicsFormatUsage.Render);
                 var rtFormat = GraphicsFormatUtility.GetRenderTextureFormat(gFormatCompat);
                 if (! Enum.IsDefined(typeof(RenderTextureFormat), rtFormat))
                     Debug.Log($"{tFormat} \t => {gFormat} \t => {gFormatCompat} \t = \t <= BAD {rtFormat}");
