@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
-using Blep;
 
 #if ! UNITY_6000
 using GraphicsFormatUsage = UnityEngine.Experimental.Rendering.FormatUsage;
