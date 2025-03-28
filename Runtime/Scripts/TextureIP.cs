@@ -107,15 +107,51 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Geometric
 
-    public static void FlipHorizontal(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("FlipHorizontal", src, dst);
+    // When flipping/rotating in place, dispatch on only half the texture and swap pixels
+    private static void _PartialDispatch(string kernelName, Texture src, RenderTexture dst,
+                                         int dispatchWidth, int dispatchHeight) {
+        int kernel = compute.FindKernel(kernelName);
+        compute.SetSize(dst.width, dst.height);
+        compute.shader.SetTexture(kernel, DstId, dst);
+        compute.GetKernelThreadGroups(kernel, dispatchWidth, dispatchHeight, out int x, out int y);
+        compute.Dispatch(kernel, x, y);
+    }
 
-    public static void FlipVertical(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("FlipVertical", src, dst);
+    public static void FlipHorizontal(Texture src, RenderTexture dst) {
+        if (src != dst) {
+            compute.UnaryOp("FlipHorizontal", src, dst);
+        }
+        else {
+            _PartialDispatch("FlipHorizontalI", src, dst, (dst.width + 1) / 2, dst.height);
+        }
+    }
 
-    public static void Rotate180(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Rotate180", src, dst);
+    public static void FlipHorizontal(RenderTexture srcDst) =>
+        FlipHorizontal(srcDst, srcDst);
 
+    public static void FlipVertical(Texture src, RenderTexture dst) {
+        if (src != dst) {
+            compute.UnaryOp("FlipVertical", src, dst);
+        }
+        else {
+            _PartialDispatch("FlipVerticalI", src, dst, dst.width, (dst.height + 1) / 2);
+        }
+    }
+
+    public static void FlipVertical(RenderTexture srcDst) =>
+        FlipVertical(srcDst, srcDst);
+
+    public static void Rotate180(Texture src, RenderTexture dst) {
+        if (src != dst) {
+            compute.UnaryOp("Rotate180", src, dst);
+        }
+        else {
+            _PartialDispatch("Rotate180I", src, dst, dst.width, (dst.height + 1) / 2);
+        }
+    }
+
+    public static void Rotate180(RenderTexture srcDst) =>
+        Rotate180(srcDst, srcDst);
 
     // -------------------------------------------------------------------------------
     // Morphology & Skeletonization

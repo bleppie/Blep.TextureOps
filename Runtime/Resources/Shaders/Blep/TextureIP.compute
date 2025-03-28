@@ -14,8 +14,11 @@
 #pragma kernel Lookup
 #pragma kernel LookupI
 #pragma kernel FlipHorizontal
+#pragma kernel FlipHorizontalI
 #pragma kernel FlipVertical
+#pragma kernel FlipVerticalI
 #pragma kernel Rotate180
+#pragma kernel Rotate180I
 #pragma kernel Erode
 #pragma kernel ErodeGather
 #pragma kernel Dilate
@@ -220,6 +223,12 @@ void LookupI(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Geometric
 
+inline void _SwapDst(uint2 xy1, uint2 xy2) {
+    float4 tmp = Dst[xy1];
+    Dst[xy1] = Dst[xy2];
+    Dst[xy2] = tmp;
+}
+
 [numthreads(THREADSX, THREADSY, 1)]
 void FlipHorizontal(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -229,8 +238,8 @@ void FlipHorizontal(uint2 xy : SV_DispatchThreadID) {
 
 [numthreads(THREADSX, THREADSY, 1)]
 void FlipHorizontalI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[uint2(TextureSize.x - xy.x - 1, xy.y)];
+    if (all(xy < uint2((TextureSize.x + 1) / 2, TextureSize.y))) {
+        _SwapDst(xy, uint2(TextureSize.x - xy.x - 1, xy.y));
     }
 }
 
@@ -243,8 +252,8 @@ void FlipVertical(uint2 xy : SV_DispatchThreadID) {
 
 [numthreads(THREADSX, THREADSY, 1)]
 void FlipVerticalI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[uint2(xy.x, TextureSize.y - xy.y - 1)];
+    if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
+        _SwapDst(xy, uint2(xy.x, TextureSize.y - xy.y - 1));
     }
 }
 
@@ -257,8 +266,19 @@ void Rotate180(uint2 xy : SV_DispatchThreadID) {
 
 [numthreads(THREADSX, THREADSY, 1)]
 void Rotate180I(uint2 xy : SV_DispatchThreadID) {
+    if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
+        _SwapDst(xy, TextureSize - xy - 1);
+    }
+}
+
+// -------------------------------------------------------------------------------
+// Misc/Experimental
+
+// Used for center of mass
+[numthreads(THREADSX, THREADSY, 1)]
+void MultiplyByPosition(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
-        Dst[xy] = Dst[TextureSize - xy - 1];
+        Dst[xy].xy = SrcA[xy].r * xy;
     }
 }
 

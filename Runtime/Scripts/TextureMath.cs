@@ -18,27 +18,29 @@ public static class TextureMath {
     public static void Copy(Texture src, RenderTexture dst) =>
         Graphics.Blit(src, dst);
 
+    public static void Clear(RenderTexture dst) =>
+        Set(dst, new Vector4(0, 0, 0, 0));
+
     public static void Set(RenderTexture dst, Vector4 value) =>
         compute.UnaryOp("SetC", null, dst, value);
 
-    public static void SetMasked(Texture src, RenderTexture dst, Vector4 value, Vector4 mask) =>
-        compute.UnaryOp("SetCMaskedC", "SetCMaskedCI",
-                        src, dst, value, mask);
+    public static void SetMasked(Texture src, RenderTexture dst, Vector4 value,
+                                 Vector4 channelMask) =>
+        compute.UnaryOp("SetCMaskedC", "SetCMaskedCI", src, dst, value, channelMask);
 
-    public static void SetMasked(RenderTexture srcDst, Vector4 value, Vector4 mask) =>
-        SetMasked(srcDst, srcDst, value, mask);
+    public static void SetMasked(RenderTexture srcDst, Vector4 value,
+                                 Vector4 channelMask) =>
+        SetMasked(srcDst, srcDst, value, channelMask);
 
     public static void SetMasked(Texture src, RenderTexture dst, Vector4 value, Texture mask) =>
-        compute.BinaryOp("SetCMasked", "SetCMaskedI",
-                         src, mask, dst, value);
+        compute.BinaryOp("SetCMasked", "SetCMaskedI", src, mask, dst, value);
 
     public static void SetMasked(RenderTexture srcDst, Vector4 value, Texture mask) =>
         SetMasked(srcDst, srcDst, value, mask);
 
 
     public static void Add(Texture src, RenderTexture dst, Vector4 value) =>
-        compute.UnaryOp("AddC", "AddCI",
-                        src, dst, value);
+        compute.UnaryOp("AddC", "AddCI", src, dst, value);
 
     public static void Add(RenderTexture srcDst, Vector4 value) =>
         Add(srcDst, srcDst, value);
