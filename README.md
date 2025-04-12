@@ -45,10 +45,11 @@ Supported Operations
 * Remap from one range to another
 
 ### Drawing
+All have optional outline color and width.
 
 * Circle
 * Ellipse
-* Rectagle
+* Rectangle
 * Line
 
 ### Image Processing
@@ -72,6 +73,7 @@ Supported Operations
 * Erode
 * Dilate
 * Skeletonize
+* DistanceTransform
 
 #### Convolution
 * Sobel

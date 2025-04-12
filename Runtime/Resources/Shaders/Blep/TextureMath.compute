@@ -31,9 +31,9 @@ RWTexture2D<float4> Dst;
 
 [numthreads(THREADSX, THREADSY, 1)]
 void SetC(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = ScalarA;
-    }
+  if (InRange(xy)) {
+    Dst[xy] = ScalarA;
+  }
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
@@ -107,9 +107,9 @@ void AddWeighted(uint2 xy : SV_DispatchThreadID) {
 
 [numthreads(THREADSX, THREADSY, 1)]
 void AddWeightedI(uint2 xy : SV_DispatchThreadID) {
-  if (InRange(xy)) {
-    Dst[xy] = Dst[xy] * ScalarA + SrcB[xy] * ScalarB;
-  }
+    if (InRange(xy)) {
+        Dst[xy] = Dst[xy] * ScalarA + SrcB[xy] * ScalarB;
+    }
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
@@ -188,3 +188,19 @@ void SaturateI(uint2 xy : SV_DispatchThreadID) {
         Dst[xy] = saturate(Dst[xy]);
     }
 }
+
+/*
+#define DEF(NAME, FUNC)                           \
+  [numthreads(THREADSX, THREADSY, 1)]             \
+  void NAME(uint2 xy : SV_DispatchThreadID) {     \
+    if (InRange(xy)) {                            \
+      Dst[xy] = _##FUNC(SrcA[xy]);                \
+    }                                             \
+  }                                               \
+  [numthreads(THREADSX, THREADSY, 1)]             \
+  void NAME##I(uint2 xy : SV_DispatchThreadID) {  \
+    if (InRange(xy)) {                            \
+      Dst[xy] = _##FUNC(Dst[xy]);                 \
+    }                                             \
+  }
+*/
