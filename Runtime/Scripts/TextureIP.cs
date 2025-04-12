@@ -154,6 +154,37 @@ public static class TextureIP {
         Rotate180(srcDst, srcDst);
 
     // -------------------------------------------------------------------------------
+    // Misc/Experimental
+
+    // Distance transform using jump flooding inspired by 
+    // https://github.com/alpacasking/JumpFloodingAlgorithm
+
+    public static void DistanceTransform(Texture src, RenderTexture dst, bool sqrDistance=false) {
+        using TextureTmp _tmp1 = new(src.width, src.height, RenderTextureFormat.ARGBFloat); 
+        using TextureTmp _tmp2 = new(src.width, src.height, RenderTextureFormat.ARGBFloat);
+        TextureTmp tmp1 = _tmp1;
+        TextureTmp tmp2 = _tmp2;
+
+        compute.UnaryOp("DistanceTransformInit", src, tmp1);
+
+        int stepKernel = compute.FindKernel("DistanceTransformStep");
+        int numPasses = (int) Mathf.Ceil(Mathf.Log(Mathf.Max(src.width, src.height), 2));
+        int step =  1 << (numPasses - 1);
+        for (int i = 0; i < numPasses; i++) {
+            compute.UnaryOp(stepKernel, tmp1, tmp2, new Vector4(step, 0, 0, 0));
+            (tmp1, tmp2) = (tmp2, tmp1);
+            step >>= 1;
+        }
+
+        if (! sqrDistance) {
+            compute.UnaryOp("DistanceTransformSqrt", tmp1, tmp2);
+            (tmp1, tmp2) = (tmp2, tmp1);
+        }
+
+        TextureMath.Copy(tmp1, dst);
+    }
+
+    // -------------------------------------------------------------------------------
     // Morphology & Skeletonization
 
     public static void Erode(Texture src, RenderTexture dst) =>

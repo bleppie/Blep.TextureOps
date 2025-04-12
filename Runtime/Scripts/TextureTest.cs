@@ -51,8 +51,20 @@ public class TextureTest : MonoBehaviour {
         yield return new WaitForSeconds(startupPause);
         //TestAccessSpeed();
         //TestReduce();
-        TestFormats();
+        //TestFormats();
         // TestGatherSpeed();
+
+        TextureIP.DistanceTransform(srcIn, dstOut);
+
+        var minValue = TextureIP.Min(dstOut);
+        var maxValue = TextureIP.Max(dstOut);
+        Debug.Log($"Max {minValue}");
+        Debug.Log($"Max {maxValue}");
+        TextureMath.Multiply(dstOut,  Vector4.one * (1.0f / 100));
+
+        TextureIP.Swizzle(dstOut,  "rrrr");
+        TextureMath.SetMasked(dstOut, Vector4.one, new Vector4(0, 0, 0, 1));
+
         Debug.Log($"Done");
     }
 

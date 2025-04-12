@@ -42,6 +42,9 @@
 #pragma kernel MaxReduce
 #pragma kernel MinReduce
 #pragma kernel SumReduce
+#pragma kernel DistanceTransformInit
+#pragma kernel DistanceTransformStep
+#pragma kernel DistanceTransformSqrt
 
 Texture2D<float4> SrcA;
 Texture2D<float4> SrcB;
@@ -274,11 +277,50 @@ void Rotate180I(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Misc/Experimental
 
-// Used for center of mass
 [numthreads(THREADSX, THREADSY, 1)]
-void MultiplyByPosition(uint2 xy : SV_DispatchThreadID) {
+void DistanceTransformInit(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
-        Dst[xy].xy = SrcA[xy].r * xy;
+        // distanceSq, x, y, value
+        float value = SrcA[xy].r;
+        Dst[xy] = float4(value > 0 ? 0 : 1e+38, xy, value);
+    }
+}
+
+void DistanceMin(uint2 xy, int2 offset, inout float4 minInfo) {
+    float4 offsetInfo = SrcA[clamp(xy + offset, 0, TextureSize - 1)];
+
+    // If has valid value
+    if (offsetInfo.w > 0) {
+        // Get squared distance to closest
+        float2 delta = xy - offsetInfo.yz; // coordinates are in y,z
+        float distanceSq = dot(delta, delta);
+        if (distanceSq < minInfo.x){
+            minInfo = float4(distanceSq, offsetInfo.yzw);
+        }
+    }
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void DistanceTransformStep(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        int offset = (uint) ScalarA.x;
+        float4 minInfo = SrcA[xy];
+        DistanceMin(xy, int2(-offset, -offset), minInfo);
+        DistanceMin(xy, int2(-offset,       0), minInfo);
+        DistanceMin(xy, int2(-offset,  offset), minInfo);
+        DistanceMin(xy, int2(      0, -offset), minInfo);
+        DistanceMin(xy, int2(      0,  offset), minInfo);
+        DistanceMin(xy, int2( offset, -offset), minInfo);
+        DistanceMin(xy, int2( offset,       0), minInfo);
+        DistanceMin(xy, int2( offset,  offset), minInfo);
+        Dst[xy] = minInfo;
+    }
+}
+
+[numthreads(THREADSX, THREADSY, 1)]
+void DistanceTransformSqrt(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        Dst[xy] = float4(sqrt(Dst[xy].x), Dst[xy].yzw);
     }
 }
 
