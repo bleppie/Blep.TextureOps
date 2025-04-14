@@ -281,8 +281,10 @@ void Rotate180I(uint2 xy : SV_DispatchThreadID) {
 void DistanceTransformInit(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
         // distanceSq, x, y, value
+        // For zero pixels, use size.x*size.x + size.y+size.y as the maximum
+        // It's a good indicator and usable if jump flooding fails.
         float value = SrcA[xy].r;
-        Dst[xy] = float4(value > 0 ? 0 : 1e+38, xy, value);
+        Dst[xy] = float4(value > 0 ? 0 : dot(TextureSize, TextureSize), xy, value);
     }
 }
 

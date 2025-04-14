@@ -15,8 +15,16 @@ public static class TextureMath {
     // -------------------------------------------------------------------------------
 
     // For consistency
-    public static void Copy(Texture src, RenderTexture dst) =>
-        Graphics.Blit(src, dst);
+    public static void Copy(Texture src, RenderTexture dst) {
+        if (src.width == src.height &&
+            dst.width == dst.height &&
+            src.graphicsFormat == dst.graphicsFormat) {
+            Graphics.CopyTexture(src, dst);
+        }
+        else {
+            Graphics.Blit(src, dst);
+        }
+    }
 
     public static void Clear(RenderTexture dst) =>
         Set(dst, new Vector4(0, 0, 0, 0));

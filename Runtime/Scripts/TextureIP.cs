@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using Blep;
 
@@ -156,6 +157,11 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Misc/Experimental
 
+    // Calculates distance from each pixel to nearest non-zero pixel. If the
+    // desination texture is 4 channels, it will be filled with the distance-to,
+    // coordinates-of, and contents-of the nearest non-zero pixel. To avoid the
+    // sqrt calculation, pass true to sqrDistance.
+
     // Distance transform using jump flooding inspired by 
     // https://github.com/alpacasking/JumpFloodingAlgorithm
 
@@ -180,7 +186,6 @@ public static class TextureIP {
             compute.UnaryOp("DistanceTransformSqrt", tmp1, tmp2);
             (tmp1, tmp2) = (tmp2, tmp1);
         }
-
         TextureMath.Copy(tmp1, dst);
     }
 
@@ -459,13 +464,21 @@ public static class TextureIP {
             height = halfHeight;
         }
 
-        // Read pixel at 0, 0 // TODO/SPEED: cache this mini texture
-        var data = new Texture2D(1, 1, tmp.graphicsFormat, 0);
-        RenderTexture.active = tmp;
-        data.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
-        RenderTexture.active = null;
-        var pixel = data.GetPixel(0, 0);
-        Object.Destroy(data);
+        Vector4 pixel = Vector4.zero;
+        if (SystemInfo.supportsAsyncGPUReadback) {
+            var request = AsyncGPUReadback.Request(tmp, 0, 0, 1, 0, 1, 0, 1,
+                                                   GraphicsFormat.R32G32B32A32_SFloat, null);
+            request.WaitForCompletion();
+            pixel = request.GetData<Vector4>(0)[0];
+        }
+        else {
+            RenderTexture.active = tmp;
+            var data = new Texture2D(1, 1, tmp.graphicsFormat, 0);
+            data.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
+            pixel = data.GetPixel(0, 0);
+            Object.Destroy(data);
+            RenderTexture.active = null;
+        }
 
         if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
         return pixel;
