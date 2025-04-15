@@ -1,14 +1,5 @@
 #include "TextureCommon.hlsl"
 
-#pragma kernel Circle
-#pragma kernel CircleI
-#pragma kernel Ellipse
-#pragma kernel EllipseI
-#pragma kernel Rectangle
-#pragma kernel RectangleI
-#pragma kernel Line
-#pragma kernel LineI
-
 Texture2D<float4> SrcA;
 Texture2D<float4> SrcB;
 float4 ScalarA;
@@ -93,6 +84,7 @@ float4 ColorFromSdf(float sdf, float4 bgColor) {
 }
 
 // Sets dst to ScalarA in the circle described by ScalarB (ctr.x, ctr.y, rad, falloff)
+#pragma kernel Circle
 [numthreads(THREADSX, THREADSY, 1)]
 void Circle(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -102,7 +94,9 @@ void Circle(uint2 xy : SV_DispatchThreadID) {
         Dst[xy] = ColorFromSdf(sdf, SrcA[xy]);
     }
 }
+
 // Sets dst to ScalarA in the circle described by ScalarB (ctr.x, ctr.y, rad, falloff)
+#pragma kernel CircleI
 [numthreads(THREADSX, THREADSY, 1)]
 void CircleI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -113,6 +107,7 @@ void CircleI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Ellipse
 [numthreads(THREADSX, THREADSY, 1)]
 void Ellipse(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -123,6 +118,7 @@ void Ellipse(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel EllipseI
 [numthreads(THREADSX, THREADSY, 1)]
 void EllipseI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -133,6 +129,7 @@ void EllipseI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Rectangle
 [numthreads(THREADSX, THREADSY, 1)]
 void Rectangle(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -143,6 +140,7 @@ void Rectangle(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel RectangleI
 [numthreads(THREADSX, THREADSY, 1)]
 void RectangleI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -153,6 +151,7 @@ void RectangleI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Line
 [numthreads(THREADSX, THREADSY, 1)]
 void Line(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -164,6 +163,7 @@ void Line(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel LineI
 [numthreads(THREADSX, THREADSY, 1)]
 void LineI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {

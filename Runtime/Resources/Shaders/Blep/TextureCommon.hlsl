@@ -16,6 +16,11 @@ inline bool InRange(uint2 xy) {
 	return all(xy < TextureSize);
 }
 
+// Returns xy clamped to texture bounds
+inline int2 ClampToRange(int2 xy) {
+	return clamp(xy, 0, TextureSize);
+}
+
 // Returns the uv coordinates corresponding to the given integer xy coordinates.
 // xy coordinates are in the range (0, size-1), but they correspond to the
 // center of pixels, so the actual mapping is from (-0.5, size-0.5) to (0, 1)

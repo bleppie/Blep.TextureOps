@@ -1,50 +1,4 @@
 #include "TextureCommon.hlsl"
-#pragma kernel Grayscale
-#pragma kernel GrayscaleI
-#pragma kernel GrayscaleGamma
-#pragma kernel GrayscaleGammaI
-#pragma kernel Threshold
-#pragma kernel ThresholdI
-#pragma kernel ConvertRGB2HSV
-#pragma kernel ConvertRGB2HSVI
-#pragma kernel ConvertHSV2RGB
-#pragma kernel ConvertHSV2RGBI
-#pragma kernel Swizzle
-#pragma kernel SwizzleI
-#pragma kernel Lookup
-#pragma kernel LookupI
-#pragma kernel FlipHorizontal
-#pragma kernel FlipHorizontalI
-#pragma kernel FlipVertical
-#pragma kernel FlipVerticalI
-#pragma kernel Rotate180
-#pragma kernel Rotate180I
-#pragma kernel Erode
-#pragma kernel ErodeGather
-#pragma kernel Dilate
-#pragma kernel BlurGaussian
-#pragma kernel RecursiveConvolveFwd
-#pragma kernel RecursiveConvolveFwdI
-#pragma kernel RecursiveConvolveBak
-#pragma kernel Skeletonize
-#pragma kernel Sobel
-#pragma kernel Scharr
-#pragma kernel ComposeOver
-#pragma kernel ComposeIn
-#pragma kernel ComposeOut
-#pragma kernel ComposeAtop
-#pragma kernel ComposeXor
-#pragma kernel ComposePlus
-#pragma kernel HistogramEqClear
-#pragma kernel HistogramEqGather
-#pragma kernel HistogramEqAccumulate
-#pragma kernel HistogramEqMap
-#pragma kernel MaxReduce
-#pragma kernel MinReduce
-#pragma kernel SumReduce
-#pragma kernel DistanceTransformInit
-#pragma kernel DistanceTransformStep
-#pragma kernel DistanceTransformSqrt
 
 Texture2D<float4> SrcA;
 Texture2D<float4> SrcB;
@@ -119,6 +73,7 @@ float4 Lookup(float4 color, Texture2D<float4> pallete) {
 // -------------------------------------------------------------------------------
 // Color conversion
 
+#pragma kernel Grayscale
 [numthreads(THREADSX, THREADSY, 1)]
 void Grayscale(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -126,6 +81,7 @@ void Grayscale(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel GrayscaleI
 [numthreads(THREADSX, THREADSY, 1)]
 void GrayscaleI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -135,6 +91,7 @@ void GrayscaleI(uint2 xy : SV_DispatchThreadID) {
 
 // Convert to linear, then grayscale, then back to gamma
 // See https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
+#pragma kernel GrayscaleGamma
 [numthreads(THREADSX, THREADSY, 1)]
 void GrayscaleGamma(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -144,6 +101,7 @@ void GrayscaleGamma(uint2 xy : SV_DispatchThreadID) {
 
 // Convert to linear, then grayscale, then back to gamma
 // See https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
+#pragma kernel GrayscaleGammaI
 [numthreads(THREADSX, THREADSY, 1)]
 void GrayscaleGammaI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -151,6 +109,7 @@ void GrayscaleGammaI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Threshold
 [numthreads(THREADSX, THREADSY, 1)]
 void Threshold(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -158,6 +117,7 @@ void Threshold(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel ThresholdI
 [numthreads(THREADSX, THREADSY, 1)]
 void ThresholdI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -165,6 +125,7 @@ void ThresholdI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel ConvertRGB2HSV
 [numthreads(THREADSX, THREADSY, 1)]
 void ConvertRGB2HSV(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -172,6 +133,7 @@ void ConvertRGB2HSV(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel ConvertRGB2HSVI
 [numthreads(THREADSX, THREADSY, 1)]
 void ConvertRGB2HSVI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -179,6 +141,7 @@ void ConvertRGB2HSVI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel ConvertHSV2RGB
 [numthreads(THREADSX, THREADSY, 1)]
 void ConvertHSV2RGB(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -186,6 +149,7 @@ void ConvertHSV2RGB(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel ConvertHSV2RGBI
 [numthreads(THREADSX, THREADSY, 1)]
 void ConvertHSV2RGBI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -193,6 +157,7 @@ void ConvertHSV2RGBI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Swizzle
 [numthreads(THREADSX, THREADSY, 1)]
 void Swizzle(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -200,6 +165,7 @@ void Swizzle(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel SwizzleI
 [numthreads(THREADSX, THREADSY, 1)]
 void SwizzleI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -208,6 +174,7 @@ void SwizzleI(uint2 xy : SV_DispatchThreadID) {
 }
 
 // Use color values in SrcA as indicies into pallette SrcB
+#pragma kernel Lookup
 [numthreads(THREADSX, THREADSY, 1)]
 void Lookup(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -216,6 +183,7 @@ void Lookup(uint2 xy : SV_DispatchThreadID) {
 }
 
 // Use color values in SrcA as indicies into pallette SrcB
+#pragma kernel LookupI
 [numthreads(THREADSX, THREADSY, 1)]
 void LookupI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -232,6 +200,7 @@ inline void _SwapDst(uint2 xy1, uint2 xy2) {
     Dst[xy2] = tmp;
 }
 
+#pragma kernel FlipHorizontal
 [numthreads(THREADSX, THREADSY, 1)]
 void FlipHorizontal(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -239,6 +208,7 @@ void FlipHorizontal(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel FlipHorizontalI
 [numthreads(THREADSX, THREADSY, 1)]
 void FlipHorizontalI(uint2 xy : SV_DispatchThreadID) {
     if (all(xy < uint2((TextureSize.x + 1) / 2, TextureSize.y))) {
@@ -247,6 +217,7 @@ void FlipHorizontalI(uint2 xy : SV_DispatchThreadID) {
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
+#pragma kernel FlipVertical
 void FlipVertical(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
         Dst[xy] = SrcA[uint2(xy.x, TextureSize.y - xy.y - 1)];
@@ -254,6 +225,7 @@ void FlipVertical(uint2 xy : SV_DispatchThreadID) {
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
+#pragma kernel FlipVerticalI
 void FlipVerticalI(uint2 xy : SV_DispatchThreadID) {
     if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
         _SwapDst(xy, uint2(xy.x, TextureSize.y - xy.y - 1));
@@ -261,6 +233,7 @@ void FlipVerticalI(uint2 xy : SV_DispatchThreadID) {
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
+#pragma kernel Rotate180
 void Rotate180(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
         Dst[xy] = SrcA[TextureSize - xy - 1];
@@ -268,6 +241,7 @@ void Rotate180(uint2 xy : SV_DispatchThreadID) {
 }
 
 [numthreads(THREADSX, THREADSY, 1)]
+#pragma kernel Rotate180I
 void Rotate180I(uint2 xy : SV_DispatchThreadID) {
     if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
         _SwapDst(xy, TextureSize - xy - 1);
@@ -277,6 +251,7 @@ void Rotate180I(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Misc/Experimental
 
+#pragma kernel DistanceTransformInit
 [numthreads(THREADSX, THREADSY, 1)]
 void DistanceTransformInit(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -302,6 +277,7 @@ void DistanceMin(uint2 xy, int2 offset, inout float4 minInfo) {
     }
 }
 
+#pragma kernel DistanceTransformStep
 [numthreads(THREADSX, THREADSY, 1)]
 void DistanceTransformStep(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -319,6 +295,7 @@ void DistanceTransformStep(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel DistanceTransformSqrt
 [numthreads(THREADSX, THREADSY, 1)]
 void DistanceTransformSqrt(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -344,6 +321,7 @@ void DistanceTransformSqrt(uint2 xy : SV_DispatchThreadID) {
 
 groupshared float4 SrcGroup[THREADSY][THREADSX];
 
+#pragma kernel ErodeGather
 [numthreads(THREADSX, THREADSY, 1)]
 void ErodeGather(uint2 group: SV_GroupID,
                  uint2 xyGroup: SV_GroupThreadID,
@@ -379,7 +357,7 @@ void ErodeGather(uint2 group: SV_GroupID,
     }
 }
 
-
+#pragma kernel Erode
 [numthreads(THREADSX, THREADSY, 1)]
 void Erode(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -401,6 +379,7 @@ void Erode(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Dilate
 [numthreads(THREADSX, THREADSY, 1)]
 void Dilate(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -424,6 +403,7 @@ void Dilate(uint2 xy : SV_DispatchThreadID) {
 
 // A Fast Parallel Algorithm for Thinning Digital Patterns, T. Y. Zhang and C. Y. Suen
 // Reference implementation here: https://github.com/dingmyu/thinning_Zhan-Suen
+#pragma kernel Skeletonize
 [numthreads(THREADSX, THREADSY, 1)]
 void Skeletonize(uint2 xy : SV_DispatchThreadID) {
     // Ignore outermost pixels
@@ -468,6 +448,7 @@ void Skeletonize(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Sobel
 [numthreads(THREADSX, THREADSY, 1)]
 void Sobel(uint2 xy : SV_DispatchThreadID) {
     // Ignore outermost pixels
@@ -489,6 +470,7 @@ void Sobel(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Scharr
 [numthreads(THREADSX, THREADSY, 1)]
 void Scharr(uint2 xy : SV_DispatchThreadID) {
     // Ignore outermost pixels
@@ -512,11 +494,96 @@ void Scharr(uint2 xy : SV_DispatchThreadID) {
 }
 
 // -------------------------------------------------------------------------------
+// Median
+// Morgan McGuire and Kyle Whitson, http://graphics.cs.williams.edu, see Copyright
+
+#define s2(a, b)          tmp = a; a = min(a, b); b = max(tmp, b);
+#define mn3(a, b, c)      s2(a, b); s2(a, c);
+#define mx3(a, b, c)      s2(b, c); s2(a, c);
+
+#define mnmx3(a, b, c)          mx3(a, b, c); s2(a, b);                                   // 3 exchanges
+#define mnmx4(a, b, c, d)       s2(a, b); s2(c, d); s2(a, c); s2(b, d);                   // 4 exchanges
+#define mnmx5(a, b, c, d, e)    s2(a, b); s2(c, d); mn3(a, c, e); mx3(b, d, e);           // 6 exchanges
+#define mnmx6(a, b, c, d, e, f) s2(a, d); s2(b, e); s2(c, f); mn3(a, b, c); mx3(d, e, f); // 7 exchanges
+
+#define t2(a, b)                          s2(v[a], v[b]);
+#define t24(a, b, c, d, e, f, g, h)       t2(a, b); t2(c, d); t2(e, f); t2(g, h);
+#define t25(a, b, c, d, e, f, g, h, i, j) t24(a, b, c, d, e, f, g, h); t2(i, j);
+
+#pragma kernel Median3x3
+[numthreads(THREADSX, THREADSY, 1)]
+void Median3x3(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        float4 v[6];
+        float4 tmp;
+
+        v[0] = SrcA[ClampToRange(xy + uint2(-1, -1))];
+        v[1] = SrcA[ClampToRange(xy + uint2( 0, -1))];
+        v[2] = SrcA[ClampToRange(xy + uint2( 1, -1))];
+        v[3] = SrcA[ClampToRange(xy + uint2(-1,  0))];
+        v[4] = SrcA[ClampToRange(xy + uint2( 0,  0))];
+        v[5] = SrcA[ClampToRange(xy + uint2( 1,  0))];
+        mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
+
+        v[5] = SrcA[ClampToRange(xy + uint2(-1,  1))];
+        mnmx5(v[1], v[2], v[3], v[4], v[5]);
+
+        v[5] = SrcA[ClampToRange(xy + uint2( 0,  1))];
+        mnmx4(v[2], v[3], v[4], v[5]);
+
+        v[5] = SrcA[ClampToRange(xy + uint2( 1,  1))];
+        mnmx3(v[3], v[4], v[5]);
+        Dst[xy] = v[4];
+    }
+}
+
+// Reduce the number of threads, otherwise we run out of registers (warning X4714)
+#pragma kernel Median5x5
+[numthreads(THREADSX/2, THREADSY/2, 1)]
+void Median5x5(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        float4 v[25];
+        uint i = 0;
+        for (int y = -2; y <= 2; y++) {
+            v[i++] = SrcA[ClampToRange(xy + int2(-2, y))];
+            v[i++] = SrcA[ClampToRange(xy + int2(-1, y))];
+            v[i++] = SrcA[ClampToRange(xy + int2( 0, y))];
+            v[i++] = SrcA[ClampToRange(xy + int2( 1, y))];
+            v[i++] = SrcA[ClampToRange(xy + int2( 2, y))];
+        }
+
+        float4 tmp;
+        t25( 0,  1,    3,  4,    2,  4,    2,  3,    6,  7);
+        t25( 5,  7,    5,  6,    9,  7,    1,  7,    1,  4);
+        t25(12, 13,   11, 13,   11, 12,   15, 16,   14, 16);
+        t25(14, 15,   18, 19,   17, 19,   17, 18,   21, 22);
+        t25(20, 22,   20, 21,   23, 24,    2,  5,    3,  6);
+        t25( 0,  6,    0,  3,    4,  7,    1,  7,    1,  4);
+        t25(11, 14,    8, 14,    8, 11,   12, 15,    9, 15);
+        t25( 9, 12,   13, 16,   10, 16,   10, 13,   20, 23);
+        t25(17, 23,   17, 20,   21, 24,   18, 24,   18, 21);
+        t25(19, 22,    8, 17,    9, 18,    0, 18,    0, 9);
+        t25(10, 19,    1, 19,    1, 10,   11, 20,    2, 20);
+        t25( 2, 11,   12, 21,    3, 21,    3, 12,   13, 22);
+        t25( 4, 22,    4, 13,   14, 23,    5, 23,    5, 14);
+        t25(15, 24,    6, 24,    6, 15,    7, 16,    7, 19);
+        t25( 3, 11,    5, 17,   11, 17,    9, 17,    4, 10);
+        t25( 6, 12,    7, 14,    4,  6,    4,  7,   12, 14);
+        t25(10, 14,    6,  7,   10, 12,    6, 10,    6, 17);
+        t25(12, 17,    7, 17,    7, 10,   12, 18,    7, 12);
+        t24(10, 18,   12, 20,   10, 20,   10, 12);
+
+        Dst[xy] = v[12];
+    }
+}
+
+// -------------------------------------------------------------------------------
 // Blurring
 
 // Incremental gaussian
 // TODO/SPEED: Transpose after first pass?
 // https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-40-incremental-computation-gaussian
+#pragma kernel BlurGaussian
 [numthreads(THREADSX, THREADSY, 1)]
 void BlurGaussian(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -581,6 +648,7 @@ void RecursiveConvolve(uint2 xy : SV_DispatchThreadID) {
 }
 
 // Run through each row forwards
+#pragma kernel RecursiveConvolveFwd
 [numthreads(THREADSX * THREADSY, 1, 1)]
 void RecursiveConvolveFwd(uint y : SV_DispatchThreadID) {
     if (y < TextureSize.y) {
@@ -604,6 +672,7 @@ void RecursiveConvolveFwd(uint y : SV_DispatchThreadID) {
 }
 
 // Run through each row forwards, inplace
+#pragma kernel RecursiveConvolveFwdI
 [numthreads(THREADSX * THREADSY, 1, 1)]
 void RecursiveConvolveFwdI(uint y : SV_DispatchThreadID) {
     if (y < TextureSize.y) {
@@ -627,6 +696,7 @@ void RecursiveConvolveFwdI(uint y : SV_DispatchThreadID) {
 }
 
 // Run through each row backwards and traspose output
+#pragma kernel RecursiveConvolveBak
 [numthreads(THREADSX * THREADSY, 1, 1)]
 void RecursiveConvolveBak(uint y : SV_DispatchThreadID) {
     if (y < TextureSize.y) {
@@ -653,12 +723,14 @@ void RecursiveConvolveBak(uint y : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Histogram
 
+#pragma kernel HistogramEqClear
 [numthreads(256, 1, 1)]
 void HistogramEqClear(uint x : SV_DispatchThreadID) {
     Histogram[x] = uint4(0, 0, 0, 0);
 }
 
 // TODO/SPEED: Isolate threads to prevent collisions
+#pragma kernel HistogramEqGather
 [numthreads(THREADSX, THREADSY, 1)]
 void HistogramEqGather(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -670,6 +742,7 @@ void HistogramEqGather(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel HistogramEqAccumulate
 [numthreads(1, 1, 1)]
 //[numthreads(256, 1, 1)]
 void HistogramEqAccumulate(uint x : SV_DispatchThreadID) {
@@ -693,6 +766,7 @@ void HistogramEqAccumulate(uint x : SV_DispatchThreadID) {
     //GroupMemoryBarrierWithGroupSync();
 }
 
+#pragma kernel HistogramEqMap
 [numthreads(THREADSX, THREADSY, 1)]
 void HistogramEqMap(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -708,6 +782,7 @@ void HistogramEqMap(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Stats, these all work in place
 
+#pragma kernel MaxReduce
 [numthreads(THREADSX, THREADSY, 1)]
 void MaxReduce(uint2 xy : SV_DispatchThreadID) {
     uint2 offset = (TextureSize + 1) >> 1;
@@ -722,6 +797,7 @@ void MaxReduce(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MinReduce
 [numthreads(THREADSX, THREADSY, 1)]
 void MinReduce(uint2 xy : SV_DispatchThreadID) {
     uint2 offset = (TextureSize + 1) >> 1;
@@ -736,6 +812,7 @@ void MinReduce(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel SumReduce
 [numthreads(THREADSX, THREADSY, 1)]
 void SumReduce(uint2 xy : SV_DispatchThreadID) {
     uint2 offset = (TextureSize + 1) >> 1;
@@ -757,6 +834,7 @@ void SumReduce(uint2 xy : SV_DispatchThreadID) {
 // αA*A+(1- αA)* αB*B
 // αA+(1-αA)* αB
 // A occludes B
+#pragma kernel ComposeOver
 [numthreads(THREADSX, THREADSY, 1)]
 void ComposeOver(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -772,6 +850,7 @@ void ComposeOver(uint2 xy : SV_DispatchThreadID) {
 // αA*A*αB
 // αA*αB
 // A within B. B acts as a matte for A. A shows only where B is visible.
+#pragma kernel ComposeIn
 [numthreads(THREADSX, THREADSY, 1)]
 void ComposeIn(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -786,6 +865,7 @@ void ComposeIn(uint2 xy : SV_DispatchThreadID) {
 // αA*A*(1-αB)
 // αA*(1-αB)
 // A outside B. NOT-B acts as a matte for A. A shows only where B is not visible.
+#pragma kernel ComposeOut
 [numthreads(THREADSX, THREADSY, 1)]
 void ComposeOut(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -799,6 +879,7 @@ void ComposeOut(uint2 xy : SV_DispatchThreadID) {
 // ATOP
 // αA*A*αB+(1- αA)* αB*B
 // αA*αB+(1- αA)* αB
+#pragma kernel ComposeAtop
 [numthreads(THREADSX, THREADSY, 1)]
 void ComposeAtop(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -812,6 +893,7 @@ void ComposeAtop(uint2 xy : SV_DispatchThreadID) {
 // αA*A*(1-αB)+(1- αA)* αB*B = lerp(aB * B, A * (1 - aB), aA) = lerp(aA * A, (1-aA)*B, aB)
 // αA*(1-αB)+(1- αA)* αB =
 // Combination of (A OUT B) and (B OUT A). A and B mutually exclude each other.
+#pragma kernel ComposeXor
 [numthreads(THREADSX, THREADSY, 1)]
 void ComposeXor(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -827,6 +909,7 @@ void ComposeXor(uint2 xy : SV_DispatchThreadID) {
 // αA*A+αB*B
 // αA+αB
 // Blend without precedence
+#pragma kernel ComposePlus
 [numthreads(THREADSX, THREADSY, 1)]
 void ComposePlus(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {

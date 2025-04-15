@@ -23,6 +23,9 @@ public class TextureOpsExample : MonoBehaviour {
 
         while (true) {
 
+            TextureMath.Copy(src, dst);
+            yield return wait;
+
             //// Draw
 
             TextureMath.Copy(src, dst);
@@ -173,6 +176,12 @@ public class TextureOpsExample : MonoBehaviour {
                 yield return wait;
 
             }
+
+            TextureIP.Median3x3(src, dst);
+            yield return wait;
+
+            TextureIP.Median5x5(src, dst);
+            yield return wait;
         }
 
     }

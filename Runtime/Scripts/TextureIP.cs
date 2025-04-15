@@ -242,6 +242,12 @@ public static class TextureIP {
     public static void Scharr(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Scharr", src, dst);
 
+    public static void Median3x3(Texture src, RenderTexture dst) =>
+        compute.UnaryOp("Median3x3", src, dst);
+
+    public static void Median5x5(Texture src, RenderTexture dst) =>
+        compute.UnaryOp("Median5x5", src, dst);
+
     // -------------------------------------------------------------------------------
     // Blurring
 

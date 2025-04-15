@@ -1,25 +1,4 @@
 #include "TextureCommon.hlsl"
-#pragma kernel SetC
-#pragma kernel SetCMasked
-#pragma kernel SetCMaskedI
-#pragma kernel SetCMaskedC
-#pragma kernel SetCMaskedCI
-#pragma kernel AddC
-#pragma kernel AddCI
-#pragma kernel Add
-#pragma kernel AddWeighted
-#pragma kernel AddWeightedI
-#pragma kernel MultiplyC
-#pragma kernel MultiplyCI
-#pragma kernel Multiply
-#pragma kernel MultiplyCAddC
-#pragma kernel MultiplyCAddCI
-#pragma kernel MultiplyCAddCSat
-#pragma kernel MultiplyCAddCSatI
-#pragma kernel Clamp
-#pragma kernel ClampI
-#pragma kernel Saturate
-#pragma kernel SaturateI
 
 Texture2D<float4> SrcA;
 Texture2D<float4> SrcB;
@@ -29,6 +8,7 @@ RWTexture2D<float4> Dst;
 
 // TODO: Add saturate versions of ones that could overflow?
 
+#pragma kernel SetC
 [numthreads(THREADSX, THREADSY, 1)]
 void SetC(uint2 xy : SV_DispatchThreadID) {
   if (InRange(xy)) {
@@ -36,6 +16,7 @@ void SetC(uint2 xy : SV_DispatchThreadID) {
   }
 }
 
+#pragma kernel SetCMaskedC
 [numthreads(THREADSX, THREADSY, 1)]
 void SetCMaskedC(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -43,6 +24,7 @@ void SetCMaskedC(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel SetCMaskedCI
 [numthreads(THREADSX, THREADSY, 1)]
 void SetCMaskedCI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -51,6 +33,7 @@ void SetCMaskedCI(uint2 xy : SV_DispatchThreadID) {
 }
 
 // Sets dst to Scalar0 inside the mask
+#pragma kernel SetCMasked
 [numthreads(THREADSX, THREADSY, 1)]
 void SetCMasked(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -61,6 +44,7 @@ void SetCMasked(uint2 xy : SV_DispatchThreadID) {
 }
 
 // Sets dst to Scalar0 inside the mask
+#pragma kernel SetCMaskedI
 [numthreads(THREADSX, THREADSY, 1)]
 void SetCMaskedI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -70,6 +54,7 @@ void SetCMaskedI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel AddC
 [numthreads(THREADSX, THREADSY, 1)]
 void AddC(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -77,6 +62,7 @@ void AddC(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel AddCI
 [numthreads(THREADSX, THREADSY, 1)]
 void AddCI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -84,6 +70,7 @@ void AddCI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Add
 [numthreads(THREADSX, THREADSY, 1)]
 void Add(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -91,6 +78,7 @@ void Add(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel AddI
 [numthreads(THREADSX, THREADSY, 1)]
 void AddI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -98,6 +86,7 @@ void AddI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel AddWeighted
 [numthreads(THREADSX, THREADSY, 1)]
 void AddWeighted(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -105,6 +94,7 @@ void AddWeighted(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel AddWeightedI
 [numthreads(THREADSX, THREADSY, 1)]
 void AddWeightedI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -112,6 +102,7 @@ void AddWeightedI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MultiplyC
 [numthreads(THREADSX, THREADSY, 1)]
 void MultiplyC(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -119,6 +110,7 @@ void MultiplyC(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MultiplyCI
 [numthreads(THREADSX, THREADSY, 1)]
 void MultiplyCI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -126,6 +118,7 @@ void MultiplyCI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Multiply
 [numthreads(THREADSX, THREADSY, 1)]
 void Multiply(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -133,6 +126,7 @@ void Multiply(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MultiplyCAddC
 [numthreads(THREADSX, THREADSY, 1)]
 void MultiplyCAddC(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -140,6 +134,7 @@ void MultiplyCAddC(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MultiplyCAddCI
 [numthreads(THREADSX, THREADSY, 1)]
 void MultiplyCAddCI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -147,6 +142,7 @@ void MultiplyCAddCI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MultiplyCAddCSat
 [numthreads(THREADSX, THREADSY, 1)]
 void MultiplyCAddCSat(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -154,6 +150,7 @@ void MultiplyCAddCSat(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel MultiplyCAddCSatI
 [numthreads(THREADSX, THREADSY, 1)]
 void MultiplyCAddCSatI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -161,6 +158,7 @@ void MultiplyCAddCSatI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Clamp
 [numthreads(THREADSX, THREADSY, 1)]
 void Clamp(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -168,6 +166,7 @@ void Clamp(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel ClampI
 [numthreads(THREADSX, THREADSY, 1)]
 void ClampI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -175,6 +174,7 @@ void ClampI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel Saturate
 [numthreads(THREADSX, THREADSY, 1)]
 void Saturate(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
@@ -182,6 +182,7 @@ void Saturate(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+#pragma kernel SaturateI
 [numthreads(THREADSX, THREADSY, 1)]
 void SaturateI(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {

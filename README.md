@@ -76,6 +76,7 @@ All have optional outline color and width.
 * DistanceTransform
 
 #### Convolution
+* Median3x3 and Median5x5
 * Sobel
 * Scharr
 * BlurGaussian
