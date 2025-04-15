@@ -74,122 +74,42 @@ float4 Lookup(float4 color, Texture2D<float4> pallete) {
 // Color conversion
 
 #pragma kernel Grayscale
-[numthreads(THREADSX, THREADSY, 1)]
-void Grayscale(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Grayscale(SrcA[xy]);
-    }
-}
-
 #pragma kernel GrayscaleI
-[numthreads(THREADSX, THREADSY, 1)]
-void GrayscaleI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Grayscale(Dst[xy]);
-    }
-}
+DEFKERNEL(Grayscale, (Grayscale(SrcA[xy])))
+DEFKERNEL(GrayscaleI, (Grayscale(Dst[xy])))
 
 // Convert to linear, then grayscale, then back to gamma
 // See https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
 #pragma kernel GrayscaleGamma
-[numthreads(THREADSX, THREADSY, 1)]
-void GrayscaleGamma(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = GrayscaleGamma(SrcA[xy]);
-    }
-}
-
-// Convert to linear, then grayscale, then back to gamma
-// See https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
 #pragma kernel GrayscaleGammaI
-[numthreads(THREADSX, THREADSY, 1)]
-void GrayscaleGammaI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = GrayscaleGamma(Dst[xy]);
-    }
-}
+DEFKERNEL(GrayscaleGamma, (GrayscaleGamma(SrcA[xy])))
+DEFKERNEL(GrayscaleGammaI, (GrayscaleGamma(Dst[xy])))
 
 #pragma kernel Threshold
-[numthreads(THREADSX, THREADSY, 1)]
-void Threshold(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = step(ScalarA, SrcA[xy]);
-    }
-}
-
 #pragma kernel ThresholdI
-[numthreads(THREADSX, THREADSY, 1)]
-void ThresholdI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = step(ScalarA, Dst[xy]);
-    }
-}
+DEFKERNEL(Threshold, (step(ScalarA, SrcA[xy])))
+DEFKERNEL(ThresholdI, (step(ScalarA, Dst[xy])))
 
 #pragma kernel ConvertRGB2HSV
-[numthreads(THREADSX, THREADSY, 1)]
-void ConvertRGB2HSV(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = RGB2HSV(SrcA[xy]);
-    }
-}
-
 #pragma kernel ConvertRGB2HSVI
-[numthreads(THREADSX, THREADSY, 1)]
-void ConvertRGB2HSVI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = RGB2HSV(Dst[xy]);
-    }
-}
+DEFKERNEL(ConvertRGB2HSV, (RGB2HSV(SrcA[xy])))
+DEFKERNEL(ConvertRGB2HSVI, (RGB2HSV(Dst[xy])))
 
 #pragma kernel ConvertHSV2RGB
-[numthreads(THREADSX, THREADSY, 1)]
-void ConvertHSV2RGB(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = HSV2RGB(SrcA[xy]);
-    }
-}
-
 #pragma kernel ConvertHSV2RGBI
-[numthreads(THREADSX, THREADSY, 1)]
-void ConvertHSV2RGBI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = HSV2RGB(Dst[xy]);
-    }
-}
+DEFKERNEL(ConvertHSV2RGB, (HSV2RGB(SrcA[xy])))
+DEFKERNEL(ConvertHSV2RGBI, (HSV2RGB(Dst[xy])))
 
 #pragma kernel Swizzle
-[numthreads(THREADSX, THREADSY, 1)]
-void Swizzle(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Swizzle(SrcA[xy], uint4(ScalarA));
-    }
-}
-
 #pragma kernel SwizzleI
-[numthreads(THREADSX, THREADSY, 1)]
-void SwizzleI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Swizzle(Dst[xy], uint4(ScalarA));
-    }
-}
+DEFKERNEL(Swizzle, (Swizzle(SrcA[xy], uint4(ScalarA))))
+DEFKERNEL(SwizzleI, (Swizzle(Dst[xy], uint4(ScalarA))))
 
 // Use color values in SrcA as indicies into pallette SrcB
 #pragma kernel Lookup
-[numthreads(THREADSX, THREADSY, 1)]
-void Lookup(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Lookup(SrcA[xy], SrcB);
-    }
-}
-
-// Use color values in SrcA as indicies into pallette SrcB
 #pragma kernel LookupI
-[numthreads(THREADSX, THREADSY, 1)]
-void LookupI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Lookup(Dst[xy], SrcB);
-    }
-}
+DEFKERNEL(Lookup, (Lookup(SrcA[xy], SrcB)))
+DEFKERNEL(LookupI, (Lookup(Dst[xy], SrcB)))
 
 // -------------------------------------------------------------------------------
 // Geometric
@@ -216,32 +136,32 @@ void FlipHorizontalI(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
-[numthreads(THREADSX, THREADSY, 1)]
 #pragma kernel FlipVertical
+[numthreads(THREADSX, THREADSY, 1)]
 void FlipVertical(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
         Dst[xy] = SrcA[uint2(xy.x, TextureSize.y - xy.y - 1)];
     }
 }
 
-[numthreads(THREADSX, THREADSY, 1)]
 #pragma kernel FlipVerticalI
+[numthreads(THREADSX, THREADSY, 1)]
 void FlipVerticalI(uint2 xy : SV_DispatchThreadID) {
     if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
         _SwapDst(xy, uint2(xy.x, TextureSize.y - xy.y - 1));
     }
 }
 
-[numthreads(THREADSX, THREADSY, 1)]
 #pragma kernel Rotate180
+[numthreads(THREADSX, THREADSY, 1)]
 void Rotate180(uint2 xy : SV_DispatchThreadID) {
     if (InRange(xy)) {
         Dst[xy] = SrcA[TextureSize - xy - 1];
     }
 }
 
-[numthreads(THREADSX, THREADSY, 1)]
 #pragma kernel Rotate180I
+[numthreads(THREADSX, THREADSY, 1)]
 void Rotate180I(uint2 xy : SV_DispatchThreadID) {
     if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
         _SwapDst(xy, TextureSize - xy - 1);
@@ -306,6 +226,7 @@ void DistanceTransformSqrt(uint2 xy : SV_DispatchThreadID) {
 // -------------------------------------------------------------------------------
 // Morphology etc
 
+// UNUSED
 // Gather src pixels into groupshared memory before accessing.
 //
 // This is the same or slower with 32x32 threads than the simple approach on
@@ -321,7 +242,7 @@ void DistanceTransformSqrt(uint2 xy : SV_DispatchThreadID) {
 
 groupshared float4 SrcGroup[THREADSY][THREADSX];
 
-#pragma kernel ErodeGather
+//#pragma kernel ErodeGather
 [numthreads(THREADSX, THREADSY, 1)]
 void ErodeGather(uint2 group: SV_GroupID,
                  uint2 xyGroup: SV_GroupThreadID,

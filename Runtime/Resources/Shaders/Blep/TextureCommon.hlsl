@@ -35,3 +35,12 @@ inline float4 SamplePoint(Texture2D src, float2 uv) {
 inline float4 SampleLinear(Texture2D src, float2 uv) {
   return src.SampleLevel(LinearClampSampler, uv, 0);
 }
+
+// Simple boilerplate kernel defenition 
+#define DEFKERNEL(NAME, EXP)                    \
+  [numthreads(THREADSX, THREADSY, 1)]           \
+  void NAME(uint2 xy : SV_DispatchThreadID) {   \
+    if (InRange(xy)) {                          \
+      Dst[xy] = EXP;                            \
+    }                                           \
+  }

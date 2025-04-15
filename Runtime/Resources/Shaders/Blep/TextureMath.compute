@@ -8,200 +8,79 @@ RWTexture2D<float4> Dst;
 
 // TODO: Add saturate versions of ones that could overflow?
 
+// Image = Constant
 #pragma kernel SetC
-[numthreads(THREADSX, THREADSY, 1)]
-void SetC(uint2 xy : SV_DispatchThreadID) {
-  if (InRange(xy)) {
-    Dst[xy] = ScalarA;
-  }
-}
+DEFKERNEL(SetC, ScalarA)
 
+// Image = Constant using a constant (channel) mask
 #pragma kernel SetCMaskedC
-[numthreads(THREADSX, THREADSY, 1)]
-void SetCMaskedC(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = lerp(SrcA[xy], ScalarA, ScalarB);
-    }
-}
-
 #pragma kernel SetCMaskedCI
-[numthreads(THREADSX, THREADSY, 1)]
-void SetCMaskedCI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = lerp(Dst[xy], ScalarA, ScalarB);
-    }
-}
+DEFKERNEL(SetCMaskedC, (lerp(SrcA[xy], ScalarA, ScalarB)))
+DEFKERNEL(SetCMaskedCI, (lerp(Dst[xy], ScalarA, ScalarB)))
 
-// Sets dst to Scalar0 inside the mask
+// Image = Constant inside a mask
 #pragma kernel SetCMasked
-[numthreads(THREADSX, THREADSY, 1)]
-void SetCMasked(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float2 uv = GetUV(xy);
-        float alpha = SampleLinear(SrcB, uv).a;
-        Dst[xy] = lerp(SrcA[xy], ScalarA, alpha);
-    }
-}
-
-// Sets dst to Scalar0 inside the mask
 #pragma kernel SetCMaskedI
-[numthreads(THREADSX, THREADSY, 1)]
-void SetCMaskedI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float2 uv = GetUV(xy);
-        float alpha = SampleLinear(SrcB, uv).a;
-        Dst[xy] = lerp(Dst[xy], ScalarA, alpha);
-    }
-}
+DEFKERNEL(SetCMasked, (lerp(SrcA[xy], ScalarA, SampleLinear(SrcB, GetUV(xy)).a)))
+DEFKERNEL(SetCMaskedI, (lerp(Dst[xy], ScalarA, SampleLinear(SrcB, GetUV(xy)).a)))
 
+// Image + Constant
 #pragma kernel AddC
-[numthreads(THREADSX, THREADSY, 1)]
-void AddC(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = SrcA[xy] + ScalarA;
-    }
-}
-
 #pragma kernel AddCI
-[numthreads(THREADSX, THREADSY, 1)]
-void AddCI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[xy] + ScalarA;
-    }
-}
+DEFKERNEL(AddC, (SrcA[xy] + ScalarA))
+DEFKERNEL(AddCI, (Dst[xy] + ScalarA))
 
+// Image1 + Image2
 #pragma kernel Add
-[numthreads(THREADSX, THREADSY, 1)]
-void Add(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = SrcA[xy] + SrcB[xy];
-    }
-}
-
 #pragma kernel AddI
-[numthreads(THREADSX, THREADSY, 1)]
-void AddI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[xy] + SrcB[xy];
-    }
-}
+DEFKERNEL(Add, (SrcA[xy] + SrcB[xy]))
+DEFKERNEL(AddI, (Dst[xy] + SrcB[xy]))
 
+// Image2 * weight1 + Image2 * weight2
 #pragma kernel AddWeighted
-[numthreads(THREADSX, THREADSY, 1)]
-void AddWeighted(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = SrcA[xy] * ScalarA + SrcB[xy] * ScalarB;
-    }
-}
-
 #pragma kernel AddWeightedI
-[numthreads(THREADSX, THREADSY, 1)]
-void AddWeightedI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[xy] * ScalarA + SrcB[xy] * ScalarB;
-    }
-}
+DEFKERNEL(AddWeighted, (SrcA[xy] * ScalarA + SrcB[xy] * ScalarB))
+DEFKERNEL(AddWeightedI, (Dst[xy] * ScalarA + SrcB[xy] * ScalarB))
 
+// Image * Constant
 #pragma kernel MultiplyC
-[numthreads(THREADSX, THREADSY, 1)]
-void MultiplyC(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = SrcA[xy] * ScalarA;
-    }
-}
-
 #pragma kernel MultiplyCI
-[numthreads(THREADSX, THREADSY, 1)]
-void MultiplyCI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[xy] * ScalarA;
-    }
-}
+DEFKERNEL(MultiplyC, (SrcA[xy] * ScalarA))
+DEFKERNEL(MultiplyCI, (Dst[xy] * ScalarA))
 
+// Image1 * Image2
 #pragma kernel Multiply
-[numthreads(THREADSX, THREADSY, 1)]
-void Multiply(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = SrcA[xy] * SrcB[xy];
-    }
-}
+#pragma kernel MultiplyI
+DEFKERNEL(Multiply, (SrcA[xy] * SrcB[xy]))
+DEFKERNEL(MultiplyI, (Dst[xy] * SrcB[xy]))
 
+// Image * Constant1 + Constant2 (mad)
 #pragma kernel MultiplyCAddC
-[numthreads(THREADSX, THREADSY, 1)]
-void MultiplyCAddC(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = SrcA[xy] * ScalarA + ScalarB;
-    }
-}
-
 #pragma kernel MultiplyCAddCI
-[numthreads(THREADSX, THREADSY, 1)]
-void MultiplyCAddCI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = Dst[xy] * ScalarA + ScalarB;
-    }
-}
+DEFKERNEL(MultiplyCAddC, (mad(SrcA[xy], ScalarA, ScalarB)))
+DEFKERNEL(MultiplyCAddCI, (mad(Dst[xy], ScalarA, ScalarB)))
 
+// saturate(Image * Constant1 + Constant2)
 #pragma kernel MultiplyCAddCSat
-[numthreads(THREADSX, THREADSY, 1)]
-void MultiplyCAddCSat(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = saturate(SrcA[xy] * ScalarA + ScalarB);
-    }
-}
-
 #pragma kernel MultiplyCAddCSatI
-[numthreads(THREADSX, THREADSY, 1)]
-void MultiplyCAddCSatI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = saturate(Dst[xy] * ScalarA + ScalarB);
-    }
-}
+DEFKERNEL(MultiplyCAddCSat, (saturate(mad(SrcA[xy], ScalarA, ScalarB))))
+DEFKERNEL(MultiplyCAddCSatI, (saturate(mad(Dst[xy], ScalarA, ScalarB))))
 
+// clamp(Image, Constant1, Constant2)
 #pragma kernel Clamp
-[numthreads(THREADSX, THREADSY, 1)]
-void Clamp(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = clamp(SrcA[xy], ScalarA, ScalarB);
-    }
-}
-
 #pragma kernel ClampI
-[numthreads(THREADSX, THREADSY, 1)]
-void ClampI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = clamp(Dst[xy], ScalarA, ScalarB);
-    }
-}
+DEFKERNEL(Clamp, (clamp(SrcA[xy], ScalarA, ScalarB)))
+DEFKERNEL(ClampI, (clamp(Dst[xy], ScalarA, ScalarB)))
 
+// saturate(Image)
 #pragma kernel Saturate
-[numthreads(THREADSX, THREADSY, 1)]
-void Saturate(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = saturate(SrcA[xy]);
-    }
-}
-
 #pragma kernel SaturateI
-[numthreads(THREADSX, THREADSY, 1)]
-void SaturateI(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        Dst[xy] = saturate(Dst[xy]);
-    }
-}
+DEFKERNEL(Saturate, (saturate(SrcA[xy])))
+DEFKERNEL(SaturateI, (saturate(Dst[xy])))
 
-/*
-#define DEF(NAME, FUNC)                           \
-  [numthreads(THREADSX, THREADSY, 1)]             \
-  void NAME(uint2 xy : SV_DispatchThreadID) {     \
-    if (InRange(xy)) {                            \
-      Dst[xy] = _##FUNC(SrcA[xy]);                \
-    }                                             \
-  }                                               \
-  [numthreads(THREADSX, THREADSY, 1)]             \
-  void NAME##I(uint2 xy : SV_DispatchThreadID) {  \
-    if (InRange(xy)) {                            \
-      Dst[xy] = _##FUNC(Dst[xy]);                 \
-    }                                             \
-  }
-*/
+// sqrt(Image)
+#pragma kernel Sqrt
+#pragma kernel SqrtI
+DEFKERNEL(Sqrt, (sqrt(SrcA[xy])))
+DEFKERNEL(SqrtI, (sqrt(Dst[xy])))
+

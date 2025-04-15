@@ -26,42 +26,6 @@ public class TextureOpsExample : MonoBehaviour {
             TextureMath.Copy(src, dst);
             yield return wait;
 
-            //// Draw
-
-            TextureMath.Copy(src, dst);
-            yield return wait;
-
-            for (int i = 0; i < 25; i++) {
-                var center = new Vector2(width * Random.Range(0.2f, 0.8f), height * Random.Range(0.2f, 0.8f));
-                var size   = new Vector2(width * Random.Range(0.1f, 0.3f), height * Random.Range(0.1f, 0.3f));
-                var hasOutline = Random.value > 0.5f;
-                var hasFill = ! hasOutline || Random.value > 0.5f;
-                var fillColor = hasFill ? Random.ColorHSV() : Color.clear;
-                var outlineWidth = hasOutline ? Random.Range(2, 20): 0;
-                var outlineColor = hasOutline ? Random.ColorHSV() : Color.clear;
-
-                switch (i % 4) {
-                    case 0:
-                        TextureDraw.Circle(dst, center, size.x,
-                            fillColor, outlineWidth, outlineColor);
-                        break;
-                    case 1:
-                        TextureDraw.Ellipse(dst, center, size,
-                            fillColor, outlineWidth, outlineColor);
-                        break;
-                    case 2:
-                        TextureDraw.Rectangle(dst, new Rect(center, size),
-                            fillColor, outlineWidth, outlineColor);
-                        break;
-                    case 3:
-                        TextureDraw.Line( dst, center - size/2, center + size/2,
-                            outlineWidth + Random.Range(1, 10),
-                            fillColor, outlineWidth, outlineColor);
-                        break;
-                }
-                yield return shortWait;
-            }
-
             //// Math
 
             var minColor = TextureIP.Min(src);
@@ -182,6 +146,43 @@ public class TextureOpsExample : MonoBehaviour {
 
             TextureIP.Median5x5(src, dst);
             yield return wait;
+
+            //// Draw
+
+            TextureMath.Copy(src, dst);
+            yield return wait;
+
+            for (int i = 0; i < 25; i++) {
+                var center = new Vector2(width * Random.Range(0.2f, 0.8f), height * Random.Range(0.2f, 0.8f));
+                var size   = new Vector2(width * Random.Range(0.1f, 0.3f), height * Random.Range(0.1f, 0.3f));
+                var hasOutline = Random.value > 0.5f;
+                var hasFill = ! hasOutline || Random.value > 0.5f;
+                var fillColor = hasFill ? Random.ColorHSV() : Color.clear;
+                var outlineWidth = hasOutline ? Random.Range(2, 20): 0;
+                var outlineColor = hasOutline ? Random.ColorHSV() : Color.clear;
+
+                switch (i % 4) {
+                    case 0:
+                        TextureDraw.Circle(dst, center, size.x,
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                    case 1:
+                        TextureDraw.Ellipse(dst, center, size,
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                    case 2:
+                        TextureDraw.Rectangle(dst, new Rect(center, size),
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                    case 3:
+                        TextureDraw.Line( dst, center - size/2, center + size/2,
+                            outlineWidth + Random.Range(1, 10),
+                            fillColor, outlineWidth, outlineColor);
+                        break;
+                }
+                yield return shortWait;
+            }
+
         }
 
     }
