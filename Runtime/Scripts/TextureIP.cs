@@ -251,6 +251,26 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Blurring
 
+    public static void Bilateral(Texture src, RenderTexture dst,
+                                 float size, float sigma=-1, float colorSigma=0.1f,
+                                 RenderTexture tmp_=null) {
+        var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
+
+        // See BlurGaussian
+        if (sigma <= 0) sigma = 0.15f * size + 0.35f;
+
+        Vector4 incGauss;
+        incGauss.x = 1.0f / (Mathf.Sqrt(2.0f * 3.1415f) * sigma);
+        incGauss.y = Mathf.Exp(-0.5f / (sigma * sigma));
+        incGauss.z = incGauss.y * incGauss.y;
+        incGauss.w = size;
+
+        compute.UnaryOp("Bilateral", src, dst, incGauss,
+                        new Vector4(-0.5f / (colorSigma * colorSigma), 0, 0, 0));
+
+        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
+    }
+
     public static void BlurGaussian(Texture src, RenderTexture dst,
                                     float size, float sigma=-1,
                                     RenderTexture tmp_=null) {

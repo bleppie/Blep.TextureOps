@@ -23,6 +23,8 @@ public class TextureTest : MonoBehaviour {
 
     public int iterations = 1;
     public float startupPause = 1;
+    public float size = 1;
+    public float rangeSigma = 1;
 
     private TextureCompute _compute;
     private Texture2D _src;
@@ -54,23 +56,12 @@ public class TextureTest : MonoBehaviour {
         //TestFormats();
         // TestGatherSpeed();
 
-        var minValue = TextureIP.Min(srcIn);
-        var maxValue = TextureIP.Max(srcIn);
-        Debug.Log($"Max {minValue}");
-        Debug.Log($"Max {maxValue}");
+        while (true) {
+            TextureIP.Bilateral(srcIn, dstOut, size, -1, rangeSigma);
+            yield return null;
+        }
 
-        TextureIP.DistanceTransform(srcIn, dstOut);
-
-        minValue = TextureIP.Min(dstOut);
-        maxValue = TextureIP.Max(dstOut);
-        Debug.Log($"Max {minValue}");
-        Debug.Log($"Max {maxValue}");
-        TextureMath.Multiply(dstOut,  Vector4.one * (1/100.0f));//maxValue.x);
-
-        TextureIP.Swizzle(dstOut,  "rrrr");
-        TextureMath.SetMasked(dstOut, Vector4.one, new Vector4(0, 0, 0, 1));
-
-        Debug.Log($"Done");
+        //        Debug.Log($"Done");
     }
 
     // -------------------------------------------------------------------------------

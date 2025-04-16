@@ -533,6 +533,74 @@ void BlurGaussian(uint2 xy : SV_DispatchThreadID) {
     }
 }
 
+// Should this be luminance based?
+inline float BilateralDistance(float3 center, float3 value) {
+    float3 delta = center.xyz - value.xyz;
+    return dot(delta, delta);
+}
+
+inline float4 BilateralWeights(float3 center, float4x3 samples, float invSigmaSq) {
+    return exp(float4(BilateralDistance(center, samples[0]),
+                      BilateralDistance(center, samples[1]),
+                      BilateralDistance(center, samples[2]),
+                      BilateralDistance(center, samples[3])) * invSigmaSq);
+}
+
+// Bilateral filter, inspired by https://pastebin.com/N38YXJCb
+#pragma kernel Bilateral
+[numthreads(THREADSX/2, THREADSY, 1)]
+void Bilateral(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        float2 uv = GetUV(xy);
+
+        float3 incGaussX = ScalarA.xyz;
+        float3 incGaussY = ScalarA.xyz;
+        float size = ScalarA.w;
+        float colorSigmaInvSq = ScalarB.x;
+
+        // Sample center point
+        float gaussWeight = incGaussX.x * incGaussY.x;
+        float4 center = SamplePoint(SrcA, uv);
+        float3 color = center.rgb * gaussWeight; // TODO: weight center color?
+        float sum = gaussWeight;
+
+        int halfSize = int(ceil((size - 1) * 0.5));
+        for (int row = 1; row <= halfSize; row++) {
+            incGaussY.xy *= incGaussY.yz;
+            incGaussX = ScalarA.xyz;
+
+            // Sample along axes
+            gaussWeight = incGaussX.x * incGaussY.x;
+            float2 offset = row * TexelSize;
+            float4x3 samples = float4x3(SamplePoint(SrcA, uv - float2(0, offset.y)).rgb,
+                                        SamplePoint(SrcA, uv + float2(0, offset.y)).rgb,
+                                        SamplePoint(SrcA, uv - float2(offset.x, 0)).rgb,
+                                        SamplePoint(SrcA, uv + float2(offset.x, 0)).rgb);
+            float4 weights = BilateralWeights(center.rgb, samples, colorSigmaInvSq);
+            color += gaussWeight * mul(weights, samples);
+            sum += gaussWeight * dot(weights, 1);
+
+            for (int col = 1; col <= halfSize; col++) {
+                incGaussX.xy *= incGaussX.yz;
+
+                // Sample in 4 quadrants
+                gaussWeight = incGaussX.x * incGaussY.x;
+                offset = float2(col, row) * TexelSize;
+                samples = float4x3(SamplePoint(SrcA, uv - offset).rgb,
+                                   SamplePoint(SrcA, uv + float2(offset.x, -offset.y)).rgb,
+                                   SamplePoint(SrcA, uv + float2(-offset.x, offset.y)).rgb,
+                                   SamplePoint(SrcA, uv + offset).rgb);
+                float4 weights = BilateralWeights(center.rgb, samples, colorSigmaInvSq);
+                color += gaussWeight * mul(weights, samples);
+                sum += gaussWeight * dot(weights, 1);
+            }
+        }
+
+        Dst[xy] = float4(color / sum, center.a);
+
+    }
+}
+
 // Recursive convolution
 // see https://www.researchgate.net/publication/222453003_Recursive_implementation_of_the_Gaussian_filter
 

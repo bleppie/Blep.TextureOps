@@ -76,12 +76,13 @@ All have optional outline color and width.
 * DistanceTransform
 
 #### Convolution
+* BlurGaussian
+* BlurGaussianRecursive: constant time gaussian for big blurs
+* RecursiveConvolve: constant time convolution
+* Bilateral
 * Median3x3 and Median5x5
 * Sobel
 * Scharr
-* BlurGaussian
-* RecursiveConvolve: constant time convolution
-* BlurGaussianRecursive: constant time gaussian for big blurs
 
 #### Stats
 * GetHistogram as a ComputeBuffer
@@ -111,4 +112,4 @@ Known Limitations
 License
 -------
 
-See LICENSE.md
+See LICENSE.md and COPYRIGHT.md
