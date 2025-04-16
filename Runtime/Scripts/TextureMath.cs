@@ -32,19 +32,11 @@ public static class TextureMath {
     public static void Set(RenderTexture dst, Vector4 value) =>
         compute.UnaryOp("SetC", null, dst, value);
 
-    public static void SetMasked(Texture src, RenderTexture dst, Vector4 value,
-                                 Vector4 channelMask) =>
-        compute.UnaryOp("SetCMaskedC", "SetCMaskedCI", src, dst, value, channelMask);
+    public static void SetMasked(RenderTexture dst, Vector4 value, Vector4 channelMask) =>
+        compute.UnaryOp("SetCMaskedCI", null, dst, value, channelMask);
 
-    public static void SetMasked(RenderTexture srcDst, Vector4 value,
-                                 Vector4 channelMask) =>
-        SetMasked(srcDst, srcDst, value, channelMask);
-
-    public static void SetMasked(Texture src, RenderTexture dst, Vector4 value, Texture mask) =>
-        compute.BinaryOp("SetCMasked", "SetCMaskedI", src, mask, dst, value);
-
-    public static void SetMasked(RenderTexture srcDst, Vector4 value, Texture mask) =>
-        SetMasked(srcDst, srcDst, value, mask);
+    public static void SetMasked(RenderTexture dst, Vector4 value, Texture mask) =>
+        compute.BinaryOp("SetCMaskedI", null, mask, dst, value);
 
 
     public static void Add(Texture src, RenderTexture dst, Vector4 value) =>
@@ -54,7 +46,7 @@ public static class TextureMath {
         Add(srcDst, srcDst, value);
 
     public static void Add(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("Add", srcA, srcB, dst);
+        compute.BinaryOp("Add", "AddI", srcA, srcB, dst);
 
 
     public static void AddWeighted(Texture srcA, Texture srcB, RenderTexture dst,
@@ -74,24 +66,25 @@ public static class TextureMath {
 
 
     public static void Multiply(Texture src, RenderTexture dst, Vector4 value) =>
-        compute.UnaryOp("MultiplyC", "MultiplyCI",
-                        src, dst, value);
+        compute.UnaryOp("MultiplyC", "MultiplyCI", src, dst, value);
 
     public static void Multiply(RenderTexture srcDst, Vector4 value) =>
         Multiply(srcDst, srcDst, value);
 
     public static void Multiply(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("Multiply", srcA, srcB, dst);
+        compute.BinaryOp("Multiply", "MultiplyI", srcA, srcB, dst);
 
 
     public static void MultiplyAdd(Texture src, RenderTexture dst,
                                    Vector4 scale, Vector4 offset, bool saturate=false) {
-        if (saturate)
+        if (saturate) {
             compute.UnaryOp("MultiplyCAddCSat", "MultiplyCAddCSatI",
                             src, dst, scale, offset);
-        else
+        }
+        else {
             compute.UnaryOp("MultiplyCAddC", "MultiplyCAddCI",
                             src, dst, scale, offset);
+        }
     }
 
     public static void MultiplyAdd(RenderTexture srcDst,
@@ -100,18 +93,23 @@ public static class TextureMath {
 
 
     public static void Clamp(Texture src, RenderTexture dst, Vector4 min, Vector4 max) =>
-        compute.UnaryOp("Clamp", "ClampI",
-                        src, dst, min, max);
+        compute.UnaryOp("Clamp", "ClampI", src, dst, min, max);
 
     public static void Clamp(RenderTexture srcDst, Vector4 min, Vector4 max) =>
         Clamp(srcDst, srcDst, min, max);
 
 
     public static void Saturate(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Saturate", "SaturateI",
-                        src, dst);
+        compute.UnaryOp("Saturate", "SaturateI", src, dst);
 
     public static void Saturate(RenderTexture srcDst) =>
+        Saturate(srcDst, srcDst);
+
+
+    public static void Sqrt(Texture src, RenderTexture dst) =>
+        compute.UnaryOp("Sqrt", "SqrtI", src, dst);
+
+    public static void Sqrt(RenderTexture srcDst) =>
         Saturate(srcDst, srcDst);
 
 

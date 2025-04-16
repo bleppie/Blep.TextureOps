@@ -125,11 +125,11 @@ public class TextureOpsExample : MonoBehaviour {
             yield return wait;
 
             TextureIP.Sobel(src, dst);
-            TextureMath.SetMasked(dst, dst, Vector4.one, new Vector4(0, 0, 0, 1));
+            TextureMath.SetMasked(dst, Vector4.one, new Vector4(0, 0, 0, 1));
             yield return wait;
 
             TextureIP.Scharr(src, dst);
-            TextureMath.SetMasked(dst, dst, Vector4.one, new Vector4(0, 0, 0, 1));
+            TextureMath.SetMasked(dst, Vector4.one, new Vector4(0, 0, 0, 1));
             yield return wait;
 
             TextureIP.BlurGaussian(src, dst, 25, -1);

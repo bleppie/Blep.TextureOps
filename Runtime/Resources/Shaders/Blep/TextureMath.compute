@@ -13,15 +13,11 @@ RWTexture2D<float4> Dst;
 DEFKERNEL(SetC, ScalarA)
 
 // Image = Constant using a constant (channel) mask
-#pragma kernel SetCMaskedC
 #pragma kernel SetCMaskedCI
-DEFKERNEL(SetCMaskedC, (lerp(SrcA[xy], ScalarA, ScalarB)))
 DEFKERNEL(SetCMaskedCI, (lerp(Dst[xy], ScalarA, ScalarB)))
 
 // Image = Constant inside a mask
-#pragma kernel SetCMasked
 #pragma kernel SetCMaskedI
-DEFKERNEL(SetCMasked, (lerp(SrcA[xy], ScalarA, SampleLinear(SrcB, GetUV(xy)).a)))
 DEFKERNEL(SetCMaskedI, (lerp(Dst[xy], ScalarA, SampleLinear(SrcB, GetUV(xy)).a)))
 
 // Image + Constant
