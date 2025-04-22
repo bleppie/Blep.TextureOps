@@ -1,13 +1,5 @@
 #include "TextureCommon.hlsl"
 
-Texture2D<float4> SrcA;
-Texture2D<float4> SrcB;
-float4 ScalarA;
-float4 ScalarB;
-float4 ScalarC;
-float4 ScalarD;
-RWTexture2D<float4> Dst;
-
 // Circle signed-distance function
 float CircleSdf(float2 xy, float2 center, float radius) {
     return distance(xy, center) - radius;
@@ -60,8 +52,10 @@ float LineSdf(float2 xy, float2 p, float2 q, float width) {
 }
 
 // Calculate color from signed-distance
-float4 ColorFromSdf(float sdf, float4 bgColor, float4 fillColor,
-                    float4 outlineColor, float outlineWidth) {
+float4 ColorFromSdf(float sdf, float4 bgColor) {
+    float4 fillColor = ScalarA;
+    float4 outlineColor = ScalarB;
+    float outlineWidth = ScalarC.x;
 
     // Magic that does antialiasing
     // distOuter = dist
@@ -78,15 +72,6 @@ float4 ColorFromSdf(float sdf, float4 bgColor, float4 fillColor,
     color.rgb = lerp(bgColor.rgb, color.rgb, color.a);
     color.a = color.a + (1 - color.a) * bgColor.a;
     return color;
-}
-
-// Convenience function to pull out color and outline settings and pass to ColorFromSdf
-float4 ColorFromSdf(float sdf, float4 bgColor) {
-    float4 fillColor = ScalarA;
-    float4 outlineColor = ScalarB;
-    float outlineWidth = ScalarC.x;
-    return ColorFromSdf(sdf, bgColor, fillColor, outlineColor, outlineWidth);
-
 }
 
 // Draw circle described by ScalarD (ctr.xy, rad)

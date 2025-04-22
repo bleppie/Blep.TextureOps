@@ -1,4 +1,6 @@
 using UnityEngine;
+using Unity.Mathematics;
+using static Unity.Mathematics.math;
 
 namespace Blep.TextureOps {
 
@@ -14,34 +16,34 @@ public static class TextureDraw {
 
     // -------------------------------------------------------------------------------
     public static void Ellipse(Texture src, RenderTexture dst,
-                               Vector2 center, Vector2 radius,
+                               float2 center, float2 radius,
                                Color fillColor=default(Color),
                                float outlineWidth=0,
                                Color outlineColor=default(Color)) =>
         compute.UnaryOp("Ellipse", "EllipseI",
-                        src, dst, fillColor, outlineColor,
-                        new Vector4(outlineWidth, 0, 0, 0),
-                        new Vector4(center.x, center.y, radius.x, radius.y));
+                        src, dst, (Vector4) fillColor, (Vector4) outlineColor,
+                        new float4(outlineWidth, 0, 0, 0),
+                        new float4(center, radius));
 
     public static void Ellipse(RenderTexture srcDst,
-                               Vector2 center, Vector2 radius,
+                               float2 center, float2 radius,
                                Color fillColor=default(Color),
                                float outlineWidth=0,
                                Color outlineColor=default(Color)) =>
         Ellipse(srcDst, srcDst, center, radius, fillColor, outlineWidth, outlineColor);
 
     public static void Circle(Texture src, RenderTexture dst,
-                              Vector2 center, float radius,
+                              float2 center, float radius,
                               Color fillColor=default(Color),
                               float outlineWidth=0,
                               Color outlineColor=default(Color)) =>
         compute.UnaryOp("Circle", "CircleI",
-                        src, dst, fillColor, outlineColor,
-                        new Vector4(outlineWidth, 0, 0, 0),
-                        new Vector4(center.x, center.y, radius));
+                        src, dst, (Vector4) fillColor, (Vector4) outlineColor,
+                        new float4(outlineWidth, 0, 0, 0),
+                        new float4(center, radius, 0));
 
     public static void Circle(RenderTexture srcDst,
-                              Vector2 center, float radius,
+                              float2 center, float radius,
                               Color fillColor=default(Color),
                               float outlineWidth=0,
                               Color outlineColor=default(Color)) =>
@@ -53,9 +55,9 @@ public static class TextureDraw {
                                  float outlineWidth=0,
                                  Color outlineColor=default(Color)) =>
         compute.UnaryOp("Rectangle", "RectangleI",
-                        src, dst, fillColor, outlineColor,
-                        new Vector4(outlineWidth, 0, 0, 0),
-                        new Vector4(rect.xMin, rect.yMin, rect.xMax, rect.yMax));
+                        src, dst, (Vector4) fillColor, (Vector4) outlineColor,
+                        new float4(outlineWidth, 0, 0, 0),
+                        new float4(rect.xMin, rect.yMin, rect.xMax, rect.yMax));
 
     public static void Rectangle(RenderTexture srcDst,
                                  Rect rect,
@@ -65,17 +67,17 @@ public static class TextureDraw {
         Rectangle(srcDst, srcDst, rect, fillColor, outlineWidth, outlineColor);
 
     public static void Line(Texture src, RenderTexture dst,
-                            Vector2 p, Vector2 q, float width,
+                            float2 p, float2 q, float width,
                             Color fillColor=default(Color),
                             float outlineWidth=0,
                             Color outlineColor=default(Color)) =>
         compute.UnaryOp("Line", "LineI",
-                        src, dst, fillColor, outlineColor,
-                        new Vector4(outlineWidth, width, 0, 0),
-                        new Vector4(p.x, p.y, q.x, q.y));
+                        src, dst, (Vector4) fillColor, (Vector4) outlineColor,
+                        new float4(outlineWidth, width, 0, 0),
+                        new float4(p.x, p.y, q.x, q.y));
 
     public static void Line(RenderTexture srcDst,
-                            Vector2 p, Vector2 q, float width,
+                            float2 p, float2 q, float width,
                             Color fillColor=default(Color),
                             float outlineWidth=0,
                             Color outlineColor=default(Color)) =>

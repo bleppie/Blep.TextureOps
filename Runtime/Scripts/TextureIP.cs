@@ -1,6 +1,9 @@
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
+using Unity.Mathematics;
+using static Unity.Mathematics.math;
 using Blep;
 
 namespace Blep.TextureOps {
@@ -38,10 +41,10 @@ public static class TextureIP {
         GrayscaleGamma(srcDst, srcDst);
 
 
-    public static void Threshold(Texture src, RenderTexture dst, Vector4 threshold) =>
+    public static void Threshold(Texture src, RenderTexture dst, float4 threshold) =>
         compute.UnaryOp("Threshold", "ThresholdI", src, dst, threshold);
 
-    public static void Threshold(RenderTexture srcDst, Vector4 threshold) =>
+    public static void Threshold(RenderTexture srcDst, float4 threshold) =>
         Threshold(srcDst, srcDst, threshold);
 
 
@@ -59,14 +62,14 @@ public static class TextureIP {
         ConvertHSV2RGB(srcDst, srcDst);
 
 
-    public static void Swizzle(Texture src, RenderTexture dst, Vector4 channels) =>
-        compute.UnaryOp("Swizzle", "SwizzleI", src, dst, channels);
+    public static void Swizzle(Texture src, RenderTexture dst, uint4 channels) =>
+        compute.UnaryOp("Swizzle", "SwizzleI", src, dst, (float4) channels);
 
-    public static void Swizzle(RenderTexture srcDst, Vector4 channels) =>
+    public static void Swizzle(RenderTexture srcDst, uint4 channels) =>
         Swizzle(srcDst, srcDst, channels);
 
     public static void Swizzle(Texture src, RenderTexture dst, string pattern) {
-        Vector4 channels = Vector4.zero;
+        uint4 channels = 0;
         // Map characters to  channels
         for (int i = Mathf.Min(4, pattern.Length); --i >= 0; ) {
             channels[i] = pattern[i] switch {
@@ -96,9 +99,9 @@ public static class TextureIP {
         amount = amount < 0 ? (1.0f / (1.0f - amount)) : 1.0f + amount;
 
         // (x - 0.5) * amount + 0.5 == x * amount + 0.5 - 0.5 * amount
-        var scale = new Vector4(amount, amount, amount, 1);
-        var offset = 0.5f * (Vector4.one - scale);
-        TextureMath.MultiplyAdd(src, dst, scale, offset, saturate: true);
+        var scale = float4(amount, amount, amount, 1);
+        var offset = 0.5f * (1 - scale);
+        TextureMath.MultiplyAdd(src, dst, scale, offset);
     }
 
     public static void Contrast(RenderTexture srcDst, float amount) =>
@@ -177,7 +180,7 @@ public static class TextureIP {
         int numPasses = (int) Mathf.Ceil(Mathf.Log(Mathf.Max(src.width, src.height), 2));
         int step =  1 << (numPasses - 1);
         for (int i = 0; i < numPasses; i++) {
-            compute.UnaryOp(stepKernel, tmp1, tmp2, new Vector4(step, 0, 0, 0));
+            compute.UnaryOp(stepKernel, tmp1, tmp2, new float4(step, 0, 0, 0));
             (tmp1, tmp2) = (tmp2, tmp1);
             step >>= 1;
         }
@@ -192,122 +195,112 @@ public static class TextureIP {
     // -------------------------------------------------------------------------------
     // Morphology & Skeletonization
 
-    public static void Erode(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Erode", src, dst);
-
-
     // Test gathering pixels into groupshared memory. This is the same or slower
     // than the simple approach on OSX/Metal, See comments in TextureIP.compute
-    public static void ErodeGather(Texture src, RenderTexture dst) {
-        compute.SetSize(src.width, src.height);
-        var kernel = compute.FindKernel("ErodeGather");
-        // Overlap tiles by 1 pixel each (2 pixels overlap), so process in groups of THREADS-2
-        compute.GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
-        xs -= 2;
-        ys -= 2;
-        int x = (src.width  + xs - 1) / xs; // Round up
-        int y = (src.height + ys - 1) / ys; // Round up
-        compute.shader.SetTexture(kernel, SrcAId, src);
-        compute.shader.SetTexture(kernel, DstId, dst);
-        compute.Dispatch(kernel, x, y);
+    // public static void ErodeGather(Texture src, RenderTexture dst) {
+    //     compute.SetSize(src.width, src.height);
+    //     var kernel = compute.FindKernel("ErodeGather");
+    //     // Overlap tiles by 1 pixel each (2 pixels overlap), so process in groups of THREADS-2
+    //     compute.GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
+    //     xs -= 2;
+    //     ys -= 2;
+    //     int x = (src.width  + xs - 1) / xs; // Round up
+    //     int y = (src.height + ys - 1) / ys; // Round up
+    //     compute.shader.SetTexture(kernel, SrcAId, src);
+    //     compute.shader.SetTexture(kernel, DstId, dst);
+    //     compute.Dispatch(kernel, x, y);
+    // }
+
+    public static void Erode(Texture src, RenderTexture dst) {
+        Assert.AreNotEqual(src, dst, "Erode cannot work in place");
+        compute.UnaryOp("Erode", src, dst);
     }
 
-    public static void Dilate(Texture src, RenderTexture dst) =>
+    public static void Dilate(Texture src, RenderTexture dst) {
+        Assert.AreNotEqual(src, dst, "Dilate cannot work in place");
         compute.UnaryOp("Dilate", src, dst);
+    }
 
-    public static void Skeletonize(Texture src, RenderTexture dst,
-                                   int iterations,
-                                   RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.GetTemporary(src);
+    public static void Skeletonize(Texture src, RenderTexture dst, int iterations) {
+        using var tmp = new TextureTmp(src);
 
         int kernel = compute.FindKernel("Skeletonize");
         for (int i = 0; i < iterations; i++) {
-            compute.UnaryOp(kernel, i == 0 ? src : dst, tmp, Vector4.zero);
-            compute.UnaryOp(kernel, tmp, dst, Vector4.one);
+            compute.UnaryOp(kernel, i == 0 ? src : dst, tmp, 0);
+            compute.UnaryOp(kernel, tmp, dst, 1);
         }
-
-        // TODO: be consistent around edges with erode/dilate
-
-        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
 
-    public static void Skeletonize(RenderTexture srcDst,
-                                   int iterations,
-                                   RenderTexture tmp_=null) =>
-        Skeletonize(srcDst, srcDst, iterations, tmp_);
+    public static void Skeletonize(RenderTexture srcDst, int iterations) =>
+        Skeletonize(srcDst, srcDst, iterations);
 
-    public static void Sobel(Texture src, RenderTexture dst) =>
+    public static void Sobel(Texture src, RenderTexture dst) {
+        Assert.AreNotEqual(src, dst, "Sobel cannot work in place");
         compute.UnaryOp("Sobel", src, dst);
+    }
 
-    public static void Scharr(Texture src, RenderTexture dst) =>
+    public static void Scharr(Texture src, RenderTexture dst) {
+        Assert.AreNotEqual(src, dst, "Scharr cannot work in place");
         compute.UnaryOp("Scharr", src, dst);
-
-    public static void Median3x3(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Median3x3", src, dst);
-
-    public static void Median5x5(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Median5x5", src, dst);
+    }
 
     // -------------------------------------------------------------------------------
-    // Blurring
+    // Convolution
 
-    public static void Bilateral(Texture src, RenderTexture dst,
-                                 float size, float sigma=-1, float colorSigma=0.1f,
-                                 RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
-
-        // See BlurGaussian
-        if (sigma <= 0) sigma = 0.15f * size + 0.35f;
-
-        Vector4 incGauss;
-        incGauss.x = 1.0f / (Mathf.Sqrt(2.0f * 3.1415f) * sigma);
-        incGauss.y = Mathf.Exp(-0.5f / (sigma * sigma));
-        incGauss.z = incGauss.y * incGauss.y;
-        incGauss.w = size;
-
-        compute.UnaryOp("Bilateral", src, dst, incGauss,
-                        new Vector4(-0.5f / (colorSigma * colorSigma), 0, 0, 0));
-
-        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
+    public static void Median3x3(Texture src, RenderTexture dst) {
+        Assert.AreNotEqual(src, dst, "Median cannot work in place");
+        compute.UnaryOp("Median3x3", src, dst);
     }
 
-    public static void BlurGaussian(Texture src, RenderTexture dst,
-                                    float size, float sigma=-1,
-                                    RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.GetTemporary(dst);
+    public static void Median5x5(Texture src, RenderTexture dst) {
+        Assert.AreNotEqual(src, dst, "Median cannot work in place");
+        compute.UnaryOp("Median5x5", src, dst);
+    }
 
+    private static float4 _CalculateGaussianCoeffs(float size, float sigma) {
         // Copying what OpenCV does: sigma = 0.3*((size-1)*0.5 - 1) + 0.8 = 0.35*size + 0.35
         // https://docs.opencv.org/2.4/modules/imgproc/doc/filtering.html#getgaussiankernel
         // Interesting explanation here:
         // https://stackoverflow.com/questions/14060017/calculate-the-gaussian-filters-sigma-using-the-kernels-size
         if (sigma <= 0) sigma = 0.15f * size + 0.35f;
 
-        Vector4 incGauss;
+        float4 incGauss;
         incGauss.x = 1.0f / (Mathf.Sqrt(2.0f * 3.1415f) * sigma);
         incGauss.y = Mathf.Exp(-0.5f / (sigma * sigma));
         incGauss.z = incGauss.y * incGauss.y;
         incGauss.w = size;
+        return incGauss;
+    }
 
+    public static void Bilateral(Texture src, RenderTexture dst,
+                                 float size, float sigma=-1, float colorSigma=0.1f) {
+        Assert.AreNotEqual(src, dst, "Bilateral cannot work in place");
+        float4 incGauss = _CalculateGaussianCoeffs(size, sigma);
+        compute.UnaryOp("Bilateral", src, dst, incGauss,
+                        float4(-0.5f / (colorSigma * colorSigma), 0, 0, 0));
+    }
+
+    public static void BlurGaussian(Texture src, RenderTexture dst,
+                                    float size, float sigma=-1) {
+        using var tmp = new TextureTmp(dst);
+
+        float4 incGauss = _CalculateGaussianCoeffs(size, sigma);
         int kernel = compute.FindKernel("BlurGaussian");
-        compute.UnaryOp(kernel, src, tmp, incGauss, new Vector2(1, 0));
-        compute.UnaryOp(kernel, tmp, dst, incGauss, new Vector2(0, 1));
 
-        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
+        // Horizontal
+        compute.UnaryOp(kernel, src, tmp, incGauss, float4(1, 0, 0, 0));
+        // Vertical
+        compute.UnaryOp(kernel, tmp, dst, incGauss, float4(0, 1, 0, 0));
     }
 
     public static void BlurGaussian(RenderTexture srcDst,
-                                    float size, float sigma=-1,
-                                    RenderTexture tmp=null) =>
-        BlurGaussian(srcDst, srcDst, size, sigma, tmp);
+                                    float size, float sigma=-1) =>
+        BlurGaussian(srcDst, srcDst, size, sigma);
 
 
-    public static void RecursiveConvolve(Texture src, RenderTexture dst,
-                                         Vector4 coeffs, RenderTexture tmp_=null) {
-        // Size of tmp is transposed size of src/dst
-        // TODO: is there a way to reinterpret a RenderTexture's dimensions?
-        Debug.Assert(tmp_ == null || (tmp_.width >= src.height && tmp_.height >= src.width),
-                     "RecursiveConvolve requires a temporary buffer with transposed (height, width) dimensions");
-        var tmp = tmp_ ?? TextureCompute.GetTemporary(dst.height, dst.width, dst.graphicsFormat);
+    public static void RecursiveConvolve(Texture src, RenderTexture dst, float4 coeffs) {
+        // Tmp has transposed aspect ratio (height x width rather than width x height)
+        using var tmp = new TextureTmp(dst.height, dst.width, dst.format);
 
         var shader = compute.shader;
         var fwdKernelI = compute.FindKernel("RecursiveConvolveFwdI"); // In-place fwd kernel
@@ -352,12 +345,10 @@ public static class TextureIP {
         shader.SetTexture(bakKernel, SrcAId, tmp);
         shader.SetTexture(bakKernel, DstId, dst);
         compute.Dispatch(bakKernel, threadsY, 1);
-
-        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
     }
 
     // https://www.researchgate.net/publication/222453003_Recursive_implementation_of_the_Gaussian_filter
-    public static Vector4 GetRecursizeGaussianCoeffs(float sigma) {
+    public static float4 GetRecursizeGaussianCoeffs(float sigma) {
 
         // Calculate filter parameters for a specified sigma
         double q;
@@ -379,16 +370,14 @@ public static class TextureIP {
         var b3 = (0.422205 * q3) / b0;
         var B = 1.0 - b1 - b2 - b3;
 
-        return new Vector4((float) B, (float) b1, (float) b2, (float) b3);
+        return float4((float) B, (float) b1, (float) b2, (float) b3);
     }
 
-    public static void BlurGaussianRecursive(Texture src, RenderTexture dst,
-                                             float sigma, RenderTexture tmp_=null) =>
-        RecursiveConvolve(src, dst, GetRecursizeGaussianCoeffs(sigma), tmp_); //
+    public static void BlurGaussianRecursive(Texture src, RenderTexture dst, float sigma) =>
+        RecursiveConvolve(src, dst, GetRecursizeGaussianCoeffs(sigma));
 
-    public static void BlurGaussianRecursive(RenderTexture srcDst,
-                                             float sigma, RenderTexture tmp_=null) =>
-        BlurGaussianRecursive(srcDst, srcDst, sigma, tmp_);
+    public static void BlurGaussianRecursive(RenderTexture srcDst, float sigma) =>
+        BlurGaussianRecursive(srcDst, srcDst, sigma);
 
     // -------------------------------------------------------------------------------
     // Histogram
@@ -417,8 +406,8 @@ public static class TextureIP {
     }
 
     // Returns the src histogram in a Array
-    public static Vector4[] GetHistogram(Texture src, Vector4[] histogram=null) {
-        histogram = histogram ?? new Vector4[256];
+    public static float4[] GetHistogram(Texture src, float4[] histogram=null) {
+        histogram = histogram ?? new float4[256];
         var histogramBuffer = GetHistogramBuffer(src);
 
         uint[] tmp = new uint[256 * 4];
@@ -466,8 +455,8 @@ public static class TextureIP {
     // Dispatches the kernel multiple times, starting at half the size of the
     // src image and halving the size each iteration. When down to a 1x1 image,
     // returns the value of the single pixel in this imagew.
-    public static Vector4 Reduce(string kernelName, Texture src, RenderTexture tmp_=null) {
-        var tmp = tmp_ ?? TextureCompute.GetFloatTemporary(src);
+    public static float4 Reduce(string kernelName, Texture src) {
+        using var tmp = new TextureTmp(src, forceFloatFormat: true);
 
         int kernel = compute.FindKernel(kernelName);
         var shader = compute.shader;
@@ -490,41 +479,45 @@ public static class TextureIP {
             height = halfHeight;
         }
 
-        Vector4 pixel = Vector4.zero;
+        float4 pixel = 0;
         if (SystemInfo.supportsAsyncGPUReadback) {
             var request = AsyncGPUReadback.Request(tmp, 0, 0, 1, 0, 1, 0, 1,
                                                    GraphicsFormat.R32G32B32A32_SFloat, null);
             request.WaitForCompletion();
-            pixel = request.GetData<Vector4>(0)[0];
+            pixel = request.GetData<float4>(0)[0];
         }
         else {
             RenderTexture.active = tmp;
-            var data = new Texture2D(1, 1, tmp.graphicsFormat, 0);
+            var data = new Texture2D(1, 1, tmp.texture.graphicsFormat, 0);
             data.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
-            pixel = data.GetPixel(0, 0);
+            pixel = (Vector4) data.GetPixel(0, 0);
             Object.Destroy(data);
             RenderTexture.active = null;
         }
 
-        if (tmp != tmp_) TextureCompute.ReleaseTemporary(tmp);
         return pixel;
     }
 
     // Returns maximum pixel value
-    public static Vector4 Max(Texture src, RenderTexture tmp=null) =>
-        Reduce("MaxReduce", src, tmp);
+    public static float4 MaxValue(Texture src) =>
+        Reduce("MaxReduce", src);
 
     // Returns minimum pixel value
-    public static Vector4 Min(Texture src, RenderTexture tmp=null) =>
-        Reduce("MinReduce", src, tmp);
+    public static float4 MinValue(Texture src) =>
+        Reduce("MinReduce", src);
 
-    // Returns sum of pixel values. If you provide a tmp texture, make sure it
-    // can handle the summing without overflowing (ie, use a float texture).
-    public static Vector4 Sum(Texture src, RenderTexture tmp=null) =>
-        Reduce("SumReduce", src, tmp);
+    // Returns averate pixel value
+    public static float4 AverageValue(Texture src) =>
+        Reduce("SumReduce", src) / (src.width * src.height);
 
     // -------------------------------------------------------------------------------
     // Composition
+
+    public static void Premultiply(Texture src, RenderTexture dst) =>
+        compute.UnaryOp("Premultiply", "PremultiplyI", src, dst);
+
+    public static void Premultiply(RenderTexture srcDst) =>
+        Premultiply(srcDst, srcDst);
 
     // Over
     // αA*A+(1- αA)* αB*B

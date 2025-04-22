@@ -7,9 +7,6 @@
 #pragma kernel TestLoadMinimal
 #pragma kernel TestLoadOffsetMinimal
 
-Texture2D<float4> SrcA;
-RWTexture2D<float4> Dst;
-
 // Speed tests
 
 inline bool InRange1(uint2 xy) {

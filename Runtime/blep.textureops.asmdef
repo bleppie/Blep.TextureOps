@@ -1,7 +1,9 @@
 {
     "name": "Blep.TextureOps",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "Unity.Mathematics"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

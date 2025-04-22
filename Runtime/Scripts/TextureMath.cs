@@ -1,4 +1,6 @@
 using UnityEngine;
+using Unity.Mathematics;
+using static Unity.Mathematics.math;
 
 namespace Blep.TextureOps {
 
@@ -14,7 +16,7 @@ public static class TextureMath {
 
     // -------------------------------------------------------------------------------
 
-    // For consistency
+    // Src = Dst, use fast CopyTexture if possible, otherwise Blit
     public static void Copy(Texture src, RenderTexture dst) {
         if (src.width == src.height &&
             dst.width == dst.height &&
@@ -26,110 +28,155 @@ public static class TextureMath {
         }
     }
 
+    // Dst = 0
     public static void Clear(RenderTexture dst) =>
-        Set(dst, new Vector4(0, 0, 0, 0));
+        Set(dst, 0.0f);
 
-    public static void Set(RenderTexture dst, Vector4 value) =>
+    // Dst = Value
+    public static void Set(RenderTexture dst, float4 value) =>
         compute.UnaryOp("SetC", null, dst, value);
 
-    public static void SetMasked(RenderTexture dst, Vector4 value, Vector4 channelMask) =>
-        compute.UnaryOp("SetCMaskedCI", null, dst, value, channelMask);
+    // Dst = Value with channel mask
+    public static void Set(RenderTexture dst, float4 value, float4 channelMask) =>
+        MultiplyAdd(dst, 1 - channelMask, value * channelMask);
 
-    public static void SetMasked(RenderTexture dst, Vector4 value, Texture mask) =>
+    // Dst = Value with image mask
+    public static void Set(RenderTexture dst, float4 value, Texture mask) =>
         compute.BinaryOp("SetCMaskedI", null, mask, dst, value);
 
 
-    public static void Add(Texture src, RenderTexture dst, Vector4 value) =>
+    // Dst = 1 - Src
+    public static void Invert(Texture src, RenderTexture dst) =>
+        compute.UnaryOp("Invert", "InvertI", src, dst);
+
+    // Src = 1 - Src
+    public static void Invert(RenderTexture srcDst) =>
+        Invert(srcDst, srcDst);
+
+
+    // Dst = Src + Value
+    public static void Add(Texture src, RenderTexture dst, float4 value) =>
         compute.UnaryOp("AddC", "AddCI", src, dst, value);
 
-    public static void Add(RenderTexture srcDst, Vector4 value) =>
+    // Src += Value
+    public static void Add(RenderTexture srcDst, float4 value) =>
         Add(srcDst, srcDst, value);
 
-    public static void Add(Texture srcA, Texture srcB, RenderTexture dst) =>
+    // Dst = SrcA + SrcB
+    public static void Add(Texture srcA, Texture srcB, RenderTexture dst) {
+        // In place operation only works when dst == srcA, so swap if dst == srcB
+        if (dst == srcB) {
+            (srcA, srcB) = (srcB, srcA);
+        }
         compute.BinaryOp("Add", "AddI", srcA, srcB, dst);
-
-
-    public static void AddWeighted(Texture srcA, Texture srcB, RenderTexture dst,
-                                   Vector4 weightA, Vector4 weightB) =>
-        compute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
-                         weightA, weightB);
-
-    public static void AddWeighted(Texture srcA, Texture srcB, RenderTexture dst,
-                                   float weightA, float weightB) =>
-        compute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
-                         new Vector4(weightA, weightA, weightA, weightA),
-                         new Vector4(weightB, weightB, weightB, weightB));
-
-
-    public static void Lerp(Texture srcA, Texture srcB, RenderTexture dst, float t) =>
-        AddWeighted(srcA, srcB, dst, 1 - t, t);
-
-
-    public static void Multiply(Texture src, RenderTexture dst, Vector4 value) =>
-        compute.UnaryOp("MultiplyC", "MultiplyCI", src, dst, value);
-
-    public static void Multiply(RenderTexture srcDst, Vector4 value) =>
-        Multiply(srcDst, srcDst, value);
-
-    public static void Multiply(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("Multiply", "MultiplyI", srcA, srcB, dst);
-
-
-    public static void MultiplyAdd(Texture src, RenderTexture dst,
-                                   Vector4 scale, Vector4 offset, bool saturate=false) {
-        if (saturate) {
-            compute.UnaryOp("MultiplyCAddCSat", "MultiplyCAddCSatI",
-                            src, dst, scale, offset);
-        }
-        else {
-            compute.UnaryOp("MultiplyCAddC", "MultiplyCAddCI",
-                            src, dst, scale, offset);
-        }
     }
 
+
+    // Dst = Src * Value
+    public static void Multiply(Texture src, RenderTexture dst, float4 value) =>
+        compute.UnaryOp("MultiplyC", "MultiplyCI", src, dst, value);
+
+    // Src *= Value
+    public static void Multiply(RenderTexture srcDst, float4 value) =>
+        Multiply(srcDst, srcDst, value);
+
+    // Dst = SrcA * SrcB
+    public static void Multiply(Texture srcA, Texture srcB, RenderTexture dst) {
+        // In place operation only works when dst == srcA, so swap if dst == srcB
+        if (dst == srcB) {
+            (srcA, srcB) = (srcB, srcA);
+        }
+        compute.BinaryOp("Multiply", "MultiplyI", srcA, srcB, dst);
+    }
+
+
+    // Dst = Src * Scale + Offset
+    public static void MultiplyAdd(Texture src, RenderTexture dst,
+                                   float4 scale, float4 offset) =>
+        compute.UnaryOp("MultiplyCAddC", "MultiplyCAddCI",
+                        src, dst, scale, offset);
+
+    // Src = Src * Scale + Offset
     public static void MultiplyAdd(RenderTexture srcDst,
-                                   Vector4 scale, Vector4 offset, bool saturate=false) =>
-        MultiplyAdd(srcDst, srcDst, scale, offset, saturate);
+                                   float4 scale, float4 offset) =>
+        MultiplyAdd(srcDst, srcDst, scale, offset);
 
 
-    public static void Clamp(Texture src, RenderTexture dst, Vector4 min, Vector4 max) =>
+    // Dst = lerp(SrcA, SrcB, T)
+    public static void Lerp(Texture srcA, Texture srcB, RenderTexture dst, float4 t) {
+        // In place operation only works when dst == srcA, so swap if dst == srcB
+        if (dst == srcB) {
+            (srcA, srcB) = (srcB, srcA);
+            t = 1 - t;
+        }
+        compute.BinaryOp("Lerp", "LerpI", srcB, srcA, dst, 1 - t);
+    }
+
+    // Dst = SrcA * WeightA + SrcB * WeightB
+    public static void AddWeighted(Texture srcA, Texture srcB, RenderTexture dst,
+                                   float4 weightA, float4 weightB) {
+        // In place operation only works when dst == srcA, so swap if dst == srcB
+        if (dst == srcB) {
+            (srcA, srcB) = (srcB, srcA);
+            (weightA, weightB) = (weightB, weightA);
+        }
+        compute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
+                         weightA, weightB);
+    }
+
+
+    // Dst = clamp(Src, min, max)
+    public static void Clamp(Texture src, RenderTexture dst, float4 min, float4 max) =>
         compute.UnaryOp("Clamp", "ClampI", src, dst, min, max);
 
-    public static void Clamp(RenderTexture srcDst, Vector4 min, Vector4 max) =>
+    // Src = clamp(Src, min, max)
+    public static void Clamp(RenderTexture srcDst, float4 min, float4 max) =>
         Clamp(srcDst, srcDst, min, max);
 
 
+    // Dst = min(SrcA, SrcB)
+    public static void Min(Texture srcA, Texture srcB, RenderTexture dst) {
+        // In place operation only works when dst == srcA, so swap if dst == srcB
+        if (dst == srcB) {
+            (srcA, srcB) = (srcB, srcA);
+        }
+        compute.BinaryOp("Min", "MinI", srcA, srcB, dst);
+    }
+
+    // Dst = max(SrcA, SrcB)
+    public static void Max(Texture srcA, Texture srcB, RenderTexture dst) {
+        // In place operation only works when dst == srcA, so swap if dst == srcB
+        if (dst == srcB) {
+            (srcA, srcB) = (srcB, srcA);
+        }
+        compute.BinaryOp("Max", "MaxI", srcA, srcB, dst);
+    }
+
+    // Dst = saturate(Src)
     public static void Saturate(Texture src, RenderTexture dst) =>
         compute.UnaryOp("Saturate", "SaturateI", src, dst);
 
+    // Src = saturate(Src)
     public static void Saturate(RenderTexture srcDst) =>
         Saturate(srcDst, srcDst);
 
 
-    public static void Sqrt(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Sqrt", "SqrtI", src, dst);
-
-    public static void Sqrt(RenderTexture srcDst) =>
-        Saturate(srcDst, srcDst);
-
-
+    // Dst = remap(Src, fromMin, fromMax, toMin, toMax)
     public static void Remap(Texture src, RenderTexture dst,
-                             Vector4 fromMin, Vector4 fromMax,
-                             Vector4 toMin, Vector4 toMax, bool saturate=false) {
+                             float4 fromMin, float4 fromMax,
+                             float4 toMin, float4 toMax) {
         var fromDelta = (fromMax - fromMin);
         var toDelta = (toMax - toMin);
-        var scale = new Vector4(fromDelta.x == 0 ? 0 : toDelta.x / fromDelta.x,
-                                fromDelta.y == 0 ? 0 : toDelta.y / fromDelta.y,
-                                fromDelta.z == 0 ? 0 : toDelta.z / fromDelta.z,
-                                fromDelta.w == 0 ? 0 : toDelta.w / fromDelta.w);
-        var offset = toMin - Vector4.Scale(fromMin, scale);
-        TextureMath.MultiplyAdd(src, dst, scale, offset, saturate);
+        var scale = select(toDelta / fromDelta, 0, fromDelta == 0);
+        var offset = toMin - fromMin * scale;
+        TextureMath.MultiplyAdd(src, dst, scale, offset);
     }
 
+    // Src = remap(Src, fromMin, fromMax, toMin, toMax)
     public static void Remap(RenderTexture srcDst,
-                             Vector4 fromMin, Vector4 fromMax,
-                             Vector4 toMin, Vector4 toMax, bool saturate=false) =>
-        Remap(srcDst, srcDst, fromMin, fromMax, toMin, toMax, saturate);
+                             float4 fromMin, float4 fromMax,
+                             float4 toMin, float4 toMax) =>
+        Remap(srcDst, srcDst, fromMin, fromMax, toMin, toMax);
 
 }
 

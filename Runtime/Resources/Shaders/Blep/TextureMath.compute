@@ -1,42 +1,32 @@
 #include "TextureCommon.hlsl"
 
-Texture2D<float4> SrcA;
-Texture2D<float4> SrcB;
-float4 ScalarA;
-float4 ScalarB;
-RWTexture2D<float4> Dst;
-
 // TODO: Add saturate versions of ones that could overflow?
 
 // Image = Constant
 #pragma kernel SetC
 DEFKERNEL(SetC, ScalarA)
 
-// Image = Constant using a constant (channel) mask
-#pragma kernel SetCMaskedCI
-DEFKERNEL(SetCMaskedCI, (lerp(Dst[xy], ScalarA, ScalarB)))
-
 // Image = Constant inside a mask
 #pragma kernel SetCMaskedI
-DEFKERNEL(SetCMaskedI, (lerp(Dst[xy], ScalarA, SampleLinear(SrcB, GetUV(xy)).a)))
+DEFKERNEL(SetCMaskedI, (lerp(Dst[xy], ScalarA, SampleLinear(SrcB, GetUV(xy)).r)))
+
+// 1 - Image
+#pragma kernel Invert
+#pragma kernel InvertI
+DEFKERNEL(Invert, (1 - SrcA[xy]))
+DEFKERNEL(InvertI, (1 - Dst[xy]))
 
 // Image + Constant
 #pragma kernel AddC
 #pragma kernel AddCI
-DEFKERNEL(AddC, (SrcA[xy] + ScalarA))
-DEFKERNEL(AddCI, (Dst[xy] + ScalarA))
+  DEFKERNEL(AddC, (SrcA[xy] + ScalarA))
+  DEFKERNEL(AddCI, (Dst[xy] + ScalarA))
 
 // Image1 + Image2
 #pragma kernel Add
 #pragma kernel AddI
 DEFKERNEL(Add, (SrcA[xy] + SrcB[xy]))
 DEFKERNEL(AddI, (Dst[xy] + SrcB[xy]))
-
-// Image2 * weight1 + Image2 * weight2
-#pragma kernel AddWeighted
-#pragma kernel AddWeightedI
-DEFKERNEL(AddWeighted, (SrcA[xy] * ScalarA + SrcB[xy] * ScalarB))
-DEFKERNEL(AddWeightedI, (Dst[xy] * ScalarA + SrcB[xy] * ScalarB))
 
 // Image * Constant
 #pragma kernel MultiplyC
@@ -50,17 +40,23 @@ DEFKERNEL(MultiplyCI, (Dst[xy] * ScalarA))
 DEFKERNEL(Multiply, (SrcA[xy] * SrcB[xy]))
 DEFKERNEL(MultiplyI, (Dst[xy] * SrcB[xy]))
 
-// Image * Constant1 + Constant2 (mad)
+// Image * Constant1 + Constant2
 #pragma kernel MultiplyCAddC
 #pragma kernel MultiplyCAddCI
 DEFKERNEL(MultiplyCAddC, (mad(SrcA[xy], ScalarA, ScalarB)))
 DEFKERNEL(MultiplyCAddCI, (mad(Dst[xy], ScalarA, ScalarB)))
 
-// saturate(Image * Constant1 + Constant2)
-#pragma kernel MultiplyCAddCSat
-#pragma kernel MultiplyCAddCSatI
-DEFKERNEL(MultiplyCAddCSat, (saturate(mad(SrcA[xy], ScalarA, ScalarB))))
-DEFKERNEL(MultiplyCAddCSatI, (saturate(mad(Dst[xy], ScalarA, ScalarB))))
+// lerp(Image1, Image2, t)
+#pragma kernel Lerp
+#pragma kernel LerpI
+DEFKERNEL(Lerp, (lerp(SrcA[xy], SrcB[xy], ScalarA)))
+DEFKERNEL(LerpI, (lerp(Dst[xy], SrcB[xy], ScalarA)))
+
+// Image1 * weight1 + Image2 * weight2
+#pragma kernel AddWeighted
+#pragma kernel AddWeightedI
+DEFKERNEL(AddWeighted, (SrcA[xy] * ScalarA + SrcB[xy] * ScalarB))
+  DEFKERNEL(AddWeightedI, (Dst[xy] * ScalarA + SrcB[xy] * ScalarB))
 
 // clamp(Image, Constant1, Constant2)
 #pragma kernel Clamp
@@ -68,15 +64,21 @@ DEFKERNEL(MultiplyCAddCSatI, (saturate(mad(Dst[xy], ScalarA, ScalarB))))
 DEFKERNEL(Clamp, (clamp(SrcA[xy], ScalarA, ScalarB)))
 DEFKERNEL(ClampI, (clamp(Dst[xy], ScalarA, ScalarB)))
 
+// min(Image1, Image2)
+#pragma kernel Min
+#pragma kernel MinI
+DEFKERNEL(Min, (min(SrcA[xy], SrcB[xy])))
+DEFKERNEL(MinI, (min(Dst[xy], SrcB[xy])))
+
+// max(Image1, Image2)
+#pragma kernel Max
+#pragma kernel MaxI
+DEFKERNEL(Max, (max(SrcA[xy], SrcB[xy])))
+DEFKERNEL(MaxI, (max(Dst[xy], SrcB[xy])))
+
 // saturate(Image)
 #pragma kernel Saturate
 #pragma kernel SaturateI
 DEFKERNEL(Saturate, (saturate(SrcA[xy])))
 DEFKERNEL(SaturateI, (saturate(Dst[xy])))
-
-// sqrt(Image)
-#pragma kernel Sqrt
-#pragma kernel SqrtI
-DEFKERNEL(Sqrt, (sqrt(SrcA[xy])))
-DEFKERNEL(SqrtI, (sqrt(Dst[xy])))
 
