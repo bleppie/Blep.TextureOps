@@ -3,14 +3,14 @@ Blep.TextureOps
 
 **Blep.TextureOps** is a Unity plugin that allows you to manipulate Textures
 using compute shaders. It can be used as a lightweight alternative to OpenCV
-Note: This has been tested on OSX/Metal and
-Windows/DirectX, but should work on all platforms that support compute shaders.
-If there are problems, please let me know.
+Note: This has been tested on OSX/Metal and Windows/DirectX, but should work on
+all platforms that support compute shaders. If there are problems, please let me
+know.
 
 Static classes provide all the functionality, for example:
 * `TextureMath.Add(srcA, srcB, dst)`
-* `TextureIP.Threshold(src, dst, new Vector4(0.5, 0.5, 0.5, 0))`
-* `TextureDraw.Circle(src, Color.red, new Vector2(100, 100), 10)`
+* `TextureIP.Threshold(src, dst, 0.5f)
+* `TextureDraw.Circle(src, Color.red, float2(100, 100), 10)`
 
 See more examples in TextureOpsExample.cs.
 
@@ -97,15 +97,15 @@ Note: most of these can work in-place.
 
 #### Convolution
 
-| Method                | Description                                                       |
-|:----------------------|:------------------------------------------------------------------|
-| BlurGaussian          | Blur image with a Gaussian kernel.                                |
-| BlurGaussianRecursive | Blur image with fast O(n^2) algorithm. Imprecise for small blurs. |
-| Bilateral             | Bilateral-filter an image.                                        |
-| Median3x3             | Median-filter an image with a 3x3 neighborhood.                   |
-| Median5x5             | Median-filter an image with a 5x5 neighborhood.                   |
-| Sobel                 | Detect edges with a Sobel filter.                                 |
-| Scharr                | Detect edges with a Scharr filter.                                |
+| Method                | Description                                                     |
+|:----------------------|:----------------------------------------------------------------|
+| BlurGaussian          | Blur image with a Gaussian kernel.                              |
+| BlurGaussianRecursive | Blur image with fast O(n) algorithm. Imprecise for small blurs. |
+| Bilateral             | Bilateral-filter an image.                                      |
+| Median3x3             | Median-filter an image with a 3x3 neighborhood.                 |
+| Median5x5             | Median-filter an image with a 5x5 neighborhood.                 |
+| Sobel                 | Detect edges with a Sobel filter.                               |
+| Scharr                | Detect edges with a Scharr filter.                              |
 
 #### Stats
 
@@ -134,8 +134,6 @@ Known Limitations
 
 * Does minimal parameter checking, for example making sure that the
   dimensions of the images in a binary operation are the same size.
-* Unless specified, Math operations do not saturate, so they should be used
-  either with high-range-count textures (float, int) or carefully.
 
 License
 -------
