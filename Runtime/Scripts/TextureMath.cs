@@ -109,7 +109,7 @@ public static class TextureMath {
             (srcA, srcB) = (srcB, srcA);
             t = 1 - t;
         }
-        compute.BinaryOp("Lerp", "LerpI", srcB, srcA, dst, 1 - t);
+        compute.BinaryOp("Lerp", "LerpI", srcA, srcB, dst, t);
     }
 
     // Dst = SrcA * WeightA + SrcB * WeightB
