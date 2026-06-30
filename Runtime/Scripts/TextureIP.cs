@@ -560,6 +560,55 @@ public static class TextureIP {
     public static void ComposePlus(Texture srcA, Texture srcB, RenderTexture dst) =>
         compute.BinaryOp("ComposePlus", srcA, srcB, dst);
 
+    // -------------------------------------------------------------------------------
+    // Blend
+    // Parameter 'srcBlend' is first to parallel the composite operations.
+    // Swap the order because the kernel functions are written the other way.
+
+    public static void BlendColorBurn(Texture srcBlend, Texture srcBase,
+                                      RenderTexture dst) =>
+        compute.BinaryOp("BlendColorBurn", srcBase, srcBlend, dst);
+
+    public static void BlendLinearBurn(Texture srcBlend, Texture srcBase,
+                                       RenderTexture dst) =>
+        compute.BinaryOp("BlendLinearBurn", srcBase, srcBlend, dst);
+
+    public static void BlendScreen(Texture srcBlend, Texture srcBase,
+                                   RenderTexture dst) =>
+        compute.BinaryOp("BlendScreen", srcBase, srcBlend, dst);
+
+    public static void BlendColorDodge(Texture srcBlend, Texture srcBase,
+                                       RenderTexture dst) =>
+        compute.BinaryOp("BlendColorDodge", srcBase, srcBlend, dst);
+
+    public static void BlendLinearDodge(Texture srcBlend, Texture srcBase,
+                                        RenderTexture dst) =>
+        compute.BinaryOp("BlendLinearDodge", srcBase, srcBlend, dst);
+
+    public static void BlendOverlay(Texture srcBlend, Texture srcBase,
+                                    RenderTexture dst) =>
+        compute.BinaryOp("BlendOverlay", srcBase, srcBlend, dst);
+
+    public static void BlendSoftLight(Texture srcBlend, Texture srcBase,
+                                      RenderTexture dst) =>
+        compute.BinaryOp("BlendSoftLight", srcBase, srcBlend, dst);
+
+    public static void BlendHardLight(Texture srcBlend, Texture srcBase,
+                                      RenderTexture dst) =>
+        compute.BinaryOp("BlendHardLight", srcBase, srcBlend, dst);
+
+    public static void BlendVividLight(Texture srcBlend, Texture srcBase,
+                                       RenderTexture dst) =>
+        compute.BinaryOp("BlendVividLight", srcBase, srcBlend, dst);
+
+    public static void BlendLinearLight(Texture srcBlend, Texture srcBase,
+                                        RenderTexture dst) =>
+        compute.BinaryOp("BlendLinearLight", srcBase, srcBlend, dst);
+
+    public static void BlendPinLight(Texture srcBlend, Texture srcBase,
+                                     RenderTexture dst) =>
+        compute.BinaryOp("BlendPinLight", srcBase, srcBlend, dst);
+
 }
 
 }

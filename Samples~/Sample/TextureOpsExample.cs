@@ -52,6 +52,44 @@ public class TextureOpsExample : MonoBehaviour {
         // TextureIP.Premultiply(overlay1);
         // TextureIP.Premultiply(overlay2);
 
+        yield return Test("Copy", () => {
+            TextureMath.Copy(src, dst);
+        });
+
+        yield return Test("BlendColorBurn", () => {
+            TextureIP.BlendColorBurn(overlay1, src, dst);
+        });
+        yield return Test("BlendLinearBurn", () => {
+            TextureIP.BlendLinearBurn(overlay1, src, dst);
+        });
+        yield return Test("BlendScreen", () => {
+            TextureIP.BlendScreen(overlay1, src, dst);
+        });
+        yield return Test("BlendColorDodge", () => {
+            TextureIP.BlendColorDodge(overlay1, src, dst);
+        });
+        yield return Test("BlendLinearDodge", () => {
+            TextureIP.BlendLinearDodge(overlay1, src, dst);
+        });
+        yield return Test("BlendOverlay", () => {
+            TextureIP.BlendOverlay(overlay1, src, dst);
+        });
+        yield return Test("BlendSoftLight", () => {
+            TextureIP.BlendSoftLight(overlay1, src, dst);
+        });
+        yield return Test("BlendHardLight", () => {
+            TextureIP.BlendHardLight(overlay1, src, dst);
+        });
+        yield return Test("BlendVividLight", () => {
+            TextureIP.BlendVividLight(overlay1, src, dst);
+        });
+        yield return Test("BlendLinearLight", () => {
+            TextureIP.BlendLinearLight(overlay1, src, dst);
+        });
+        yield return Test("BlendPinLight", () => {
+            TextureIP.BlendPinLight(overlay1, src, dst);
+        });
+
         //// Math
 
         yield return Test("Copy", () => {

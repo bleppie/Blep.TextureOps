@@ -19,8 +19,8 @@ DEFKERNEL(InvertI, (1 - Dst[xy]))
 // Image + Constant
 #pragma kernel AddC
 #pragma kernel AddCI
-  DEFKERNEL(AddC, (SrcA[xy] + ScalarA))
-  DEFKERNEL(AddCI, (Dst[xy] + ScalarA))
+DEFKERNEL(AddC, (SrcA[xy] + ScalarA))
+DEFKERNEL(AddCI, (Dst[xy] + ScalarA))
 
 // Image1 + Image2
 #pragma kernel Add

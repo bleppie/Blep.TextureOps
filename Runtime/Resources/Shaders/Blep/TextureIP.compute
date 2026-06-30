@@ -1,69 +1,7 @@
 #include "TextureCommon.hlsl"
+#include "TextureIPFuncs.hlsl"
 
 RWStructuredBuffer<uint4> Histogram;
-
-// -------------------------------------------------------------------------------
-
-// Converts color in linear space  to Unity gamma space
-inline float4 Linear2Gamma(float4 color) {
-    // Approximation
-    // from http://chilliant.blogspot.com.au/2012/08/srgb-approximations-for-hlsl.html?m=1
-    color.rgb = max(color.rgb, float3(0, 0, 0));
-    color.rgb = max(1.055 * pow(color.rgb, 0.416666667) - 0.055, 0);
-    return color;
-}
-
-// Converts color in Unity gamma space to linear space
-inline float4 Gamma2Linear(float4 color) {
-    // Approximation
-    // From https://web.archive.org/web/20200207113336/http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
-    color.rgb = color.rgb * (color.rgb * (color.rgb * 0.305306011 + 0.682171111) + 0.012522878);
-    return color;
-}
-
-inline float4 RGB2HSV(float4 c) {
-    // From https://web.archive.org/web/20200207113336/http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
-    float4 K = float4(0.0f, -1.0f / 3.0f, 2.0f / 3.0f, -1.0f);
-    float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
-    float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
-
-    float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10f;
-    return float4(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x, c.a);
-}
-
-inline float4 HSV2RGB(float4 c) {
-    //  https://gamedev.stackexchange.com/questions/59797/glsl-shader-change-hue-saturation-brightness
-    float4 K = float4(1.0f, 2.0f / 3.0f, 1.0f / 3.0f, 3.0f);
-    float3 p = abs(frac(c.xxx + K.xyz) * 6.0f - K.www);
-    return float4(c.z * lerp(K.xxx, saturate(p - K.xxx), c.y), c.a);
-}
-
-float4 Grayscale(float4 color) {
-    float lum = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
-    return float4(lum, lum, lum, color.a);
-}
-
-float4 GrayscaleGamma(float4 color) {
-    color = Gamma2Linear(color);
-    float lum = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
-    return float4(lum, lum, lum, color.a);
-}
-
-float4 Swizzle(float4 color, uint4 channels) {
-    return float4(color[channels.x],
-                  color[channels.y],
-                  color[channels.z],
-                  color[channels.w]);
-}
-
-float4 Lookup(float4 color, Texture2D<float4> pallete) {
-    return float4(SampleLinear(pallete, float2(color.r, 0)).r,
-                  SampleLinear(pallete, float2(color.g, 0)).g,
-                  SampleLinear(pallete, float2(color.b, 0)).b,
-                  SampleLinear(pallete, float2(color.a, 0)).a);
-}
-
 
 // -------------------------------------------------------------------------------
 // Color conversion
@@ -832,93 +770,57 @@ void SumReduce(uint2 xy : SV_DispatchThreadID) {
 DEFKERNEL(Premultiply, (SrcA[xy] * float4(SrcA[xy].aaa, 1)))
 DEFKERNEL(PremultiplyI, (Dst[xy] * float4(Dst[xy].aaa, 1)))
 
-// Over
-// αA*A+(1- αA)* αB*B
-// αA+(1-αA)* αB
-// A occludes B
 #pragma kernel ComposeOver
-[numthreads(THREADSX, THREADSY, 1)]
-void ComposeOver(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float4 colorA = SrcA[xy];
-        float4 colorB = SrcB[xy];
-        colorA.rgb *= colorA.a;
-        colorB.rgb *= colorB.a;
-        Dst[xy] = lerp(colorB, float4(colorA.rgb, 1), colorA.a);
-    }
-}
+DEFKERNEL(ComposeOver, (ComposeOver(SrcA[xy], SrcB[xy])))
 
-// IN
-// αA*A*αB
-// αA*αB
-// A within B. B acts as a matte for A. A shows only where B is visible.
 #pragma kernel ComposeIn
-[numthreads(THREADSX, THREADSY, 1)]
-void ComposeIn(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float4 colorA = SrcA[xy];
-        float4 colorB = SrcB[xy];
-        colorA.rgb *= colorA.a;
-        Dst[xy] = colorA * colorB.a;
-    }
-}
+DEFKERNEL(ComposeIn, (ComposeIn(SrcA[xy], SrcB[xy])))
 
-// OUT
-// αA*A*(1-αB)
-// αA*(1-αB)
-// A outside B. NOT-B acts as a matte for A. A shows only where B is not visible.
 #pragma kernel ComposeOut
-[numthreads(THREADSX, THREADSY, 1)]
-void ComposeOut(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float4 colorA = SrcA[xy];
-        float4 colorB = SrcB[xy];
-        colorA.rgb *= colorA.a;
-        Dst[xy] = colorA * (1 - colorB.a);
-    }
-}
+DEFKERNEL(ComposeOut, (ComposeOut(SrcA[xy], SrcB[xy])))
 
-// ATOP
-// αA*A*αB+(1- αA)* αB*B
-// αA*αB+(1- αA)* αB
 #pragma kernel ComposeAtop
-[numthreads(THREADSX, THREADSY, 1)]
-void ComposeAtop(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float4 colorA = SrcA[xy];
-        float4 colorB = SrcB[xy];
-        Dst[xy] = float4(lerp(colorB.rgb, colorA.rgb, colorA.a) * colorB.a, colorB.a);
-    }
-}
+DEFKERNEL(ComposeAtop, (ComposeAtop(SrcA[xy], SrcB[xy])))
 
-// XOR
-// αA*A*(1-αB)+(1- αA)* αB*B = lerp(aB * B, A * (1 - aB), aA) = lerp(aA * A, (1-aA)*B, aB)
-// αA*(1-αB)+(1- αA)* αB =
-// Combination of (A OUT B) and (B OUT A). A and B mutually exclude each other.
 #pragma kernel ComposeXor
-[numthreads(THREADSX, THREADSY, 1)]
-void ComposeXor(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float4 colorA = SrcA[xy];
-        float4 colorB = SrcB[xy];
-        colorA.rgb *= colorA.a;
-        colorB.rgb *= colorB.a;
-        Dst[xy] = saturate(colorA * (1 - colorB.a) + colorB * (1 - colorA.a));
-    }
-}
+DEFKERNEL(ComposeXor, (ComposeXor(SrcA[xy], SrcB[xy])))
 
-// PLUS
-// αA*A+αB*B
-// αA+αB
-// Blend without precedence
 #pragma kernel ComposePlus
-[numthreads(THREADSX, THREADSY, 1)]
-void ComposePlus(uint2 xy : SV_DispatchThreadID) {
-    if (InRange(xy)) {
-        float4 colorA = SrcA[xy];
-        float4 colorB = SrcB[xy];
-        colorA.rgb *= colorA.a;
-        colorB.rgb *= colorB.a;
-        Dst[xy] = saturate(colorA + colorB);
-    }
-}
+DEFKERNEL(ComposePlus, (ComposePlus(SrcA[xy], SrcB[xy])))
+
+// -------------------------------------------------------------------------------
+// Blend
+
+#pragma kernel BlendColorBurn
+DEFKERNEL(BlendColorBurn, (BlendColorBurn(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendLinearBurn
+DEFKERNEL(BlendLinearBurn, (BlendLinearBurn(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendScreen
+DEFKERNEL(BlendScreen, (BlendScreen(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendColorDodge
+DEFKERNEL(BlendColorDodge, (BlendColorDodge(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendLinearDodge
+DEFKERNEL(BlendLinearDodge, (BlendLinearDodge(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendOverlay
+DEFKERNEL(BlendOverlay, (BlendOverlay(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendSoftLight
+DEFKERNEL(BlendSoftLight, (BlendSoftLight(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendHardLight
+DEFKERNEL(BlendHardLight, (BlendHardLight(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendVividLight
+DEFKERNEL(BlendVividLight, (BlendVividLight(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendLinearLight
+DEFKERNEL(BlendLinearLight, (BlendLinearLight(SrcA[xy], SrcB[xy])))
+
+#pragma kernel BlendPinLight
+DEFKERNEL(BlendPinLight, (BlendPinLight(SrcA[xy], SrcB[xy])))
+
