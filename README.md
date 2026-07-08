@@ -101,14 +101,14 @@ Note: many of these can work in-place.
 
 #### Stats
 
-|                               |                                                       |
-|:------------------------------|:------------------------------------------------------|
-| GetHistogram                  | Calculate and return image histogram.                 |
-| EqualizeHistogram             | Equalize image histogram.                             |
-| Reduce: used by Min, Max, Sum | Reduce: used by MinValue, MaxValue, and AverageValue. |
-| MinValue                      | Return minimum pixel value.                           |
-| MaxValue                      | Return maximum pixel value.                           |
-| AverageValue                  | Return average pixel value.                           |
+|                   |                                               |
+|:------------------|:----------------------------------------------|
+| GetHistogram      | Calculate and return image histogram.         |
+| EqualizeHistogram | Equalize image histogram.                     |
+| Reduce            | Used by MinValue, MaxValue, and AverageValue. |
+| MinValue          | Return minimum pixel value.                   |
+| MaxValue          | Return maximum pixel value.                   |
+| AverageValue      | Return average pixel value.                   |
 
 #### Composition
 
