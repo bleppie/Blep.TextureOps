@@ -4,15 +4,14 @@ using static Unity.Mathematics.math;
 
 namespace Blep.TextureOps {
 
-public static class TextureMath {
+public static partial class TextureOps {
 
-    private static TextureCompute _compute;
-    public static TextureCompute compute =>
-        (_compute = _compute ?? new TextureCompute("Shaders/Blep/TextureMath"));
+    private static TextureCompute _mathCompute;
+    public static TextureCompute mathCompute =>
+        (_mathCompute = _mathCompute ?? new TextureCompute("Shaders/Blep/TextureMath"));
 
-    // Reset statics while in the editor and play-mode-options are turned on
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void _Init() { _compute = null; }
+    public static void InitMath() { var compute = mathCompute; }
+    private static void _ResetMath() { _mathCompute = null; }
 
     // -------------------------------------------------------------------------------
 
@@ -34,7 +33,7 @@ public static class TextureMath {
 
     // Dst = Value
     public static void Set(RenderTexture dst, float4 value) =>
-        compute.UnaryOp("SetC", null, dst, value);
+        mathCompute.UnaryOp("SetC", null, dst, value);
 
     // Dst = Value with channel mask
     public static void Set(RenderTexture dst, float4 value, float4 channelMask) =>
@@ -42,12 +41,12 @@ public static class TextureMath {
 
     // Dst = Value with image mask
     public static void Set(RenderTexture dst, float4 value, Texture mask) =>
-        compute.BinaryOp("SetCMaskedI", null, mask, dst, value);
+        mathCompute.BinaryOp("SetCMaskedI", null, mask, dst, value);
 
 
     // Dst = 1 - Src
     public static void Invert(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Invert", "InvertI", src, dst);
+        mathCompute.UnaryOp("Invert", "InvertI", src, dst);
 
     // Src = 1 - Src
     public static void Invert(RenderTexture srcDst) =>
@@ -56,7 +55,7 @@ public static class TextureMath {
 
     // Dst = Src + Value
     public static void Add(Texture src, RenderTexture dst, float4 value) =>
-        compute.UnaryOp("AddC", "AddCI", src, dst, value);
+        mathCompute.UnaryOp("AddC", "AddCI", src, dst, value);
 
     // Src += Value
     public static void Add(RenderTexture srcDst, float4 value) =>
@@ -68,13 +67,13 @@ public static class TextureMath {
         if (dst == srcB) {
             (srcA, srcB) = (srcB, srcA);
         }
-        compute.BinaryOp("Add", "AddI", srcA, srcB, dst);
+        mathCompute.BinaryOp("Add", "AddI", srcA, srcB, dst);
     }
 
 
     // Dst = Src * Value
     public static void Multiply(Texture src, RenderTexture dst, float4 value) =>
-        compute.UnaryOp("MultiplyC", "MultiplyCI", src, dst, value);
+        mathCompute.UnaryOp("MultiplyC", "MultiplyCI", src, dst, value);
 
     // Src *= Value
     public static void Multiply(RenderTexture srcDst, float4 value) =>
@@ -86,14 +85,14 @@ public static class TextureMath {
         if (dst == srcB) {
             (srcA, srcB) = (srcB, srcA);
         }
-        compute.BinaryOp("Multiply", "MultiplyI", srcA, srcB, dst);
+        mathCompute.BinaryOp("Multiply", "MultiplyI", srcA, srcB, dst);
     }
 
 
     // Dst = Src * Scale + Offset
     public static void MultiplyAdd(Texture src, RenderTexture dst,
                                    float4 scale, float4 offset) =>
-        compute.UnaryOp("MultiplyCAddC", "MultiplyCAddCI",
+        mathCompute.UnaryOp("MultiplyCAddC", "MultiplyCAddCI",
                         src, dst, scale, offset);
 
     // Src = Src * Scale + Offset
@@ -109,7 +108,7 @@ public static class TextureMath {
             (srcA, srcB) = (srcB, srcA);
             t = 1 - t;
         }
-        compute.BinaryOp("Lerp", "LerpI", srcA, srcB, dst, t);
+        mathCompute.BinaryOp("Lerp", "LerpI", srcA, srcB, dst, t);
     }
 
     // Dst = SrcA * WeightA + SrcB * WeightB
@@ -120,14 +119,14 @@ public static class TextureMath {
             (srcA, srcB) = (srcB, srcA);
             (weightA, weightB) = (weightB, weightA);
         }
-        compute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
+        mathCompute.BinaryOp("AddWeighted", "AddWeightedI", srcA, srcB, dst,
                          weightA, weightB);
     }
 
 
     // Dst = clamp(Src, min, max)
     public static void Clamp(Texture src, RenderTexture dst, float4 min, float4 max) =>
-        compute.UnaryOp("Clamp", "ClampI", src, dst, min, max);
+        mathCompute.UnaryOp("Clamp", "ClampI", src, dst, min, max);
 
     // Src = clamp(Src, min, max)
     public static void Clamp(RenderTexture srcDst, float4 min, float4 max) =>
@@ -140,7 +139,7 @@ public static class TextureMath {
         if (dst == srcB) {
             (srcA, srcB) = (srcB, srcA);
         }
-        compute.BinaryOp("Min", "MinI", srcA, srcB, dst);
+        mathCompute.BinaryOp("Min", "MinI", srcA, srcB, dst);
     }
 
     // Dst = max(SrcA, SrcB)
@@ -149,12 +148,12 @@ public static class TextureMath {
         if (dst == srcB) {
             (srcA, srcB) = (srcB, srcA);
         }
-        compute.BinaryOp("Max", "MaxI", srcA, srcB, dst);
+        mathCompute.BinaryOp("Max", "MaxI", srcA, srcB, dst);
     }
 
     // Dst = saturate(Src)
     public static void Saturate(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Saturate", "SaturateI", src, dst);
+        mathCompute.UnaryOp("Saturate", "SaturateI", src, dst);
 
     // Src = saturate(Src)
     public static void Saturate(RenderTexture srcDst) =>
@@ -169,7 +168,7 @@ public static class TextureMath {
         var toDelta = (toMax - toMin);
         var scale = select(toDelta / fromDelta, 0, fromDelta == 0);
         var offset = toMin - fromMin * scale;
-        TextureMath.MultiplyAdd(src, dst, scale, offset);
+        MultiplyAdd(src, dst, scale, offset);
     }
 
     // Src = remap(Src, fromMin, fromMax, toMin, toMax)

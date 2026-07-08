@@ -4,33 +4,25 @@ using static Unity.Mathematics.math;
 
 namespace Blep.TextureOps {
 
-public static class TextureGeometry {
+public static partial class TextureOps {
+
+    private static TextureCompute _geomCompute;
+    public static TextureCompute geomCompute =>
+        (_geomCompute = _geomCompute ?? new TextureCompute("Shaders/Blep/TextureGeometry"));
+
+    public static void InitGeometry() { var compute = geomCompute; }
+    private static void _ResetGeometry() {
+        _geomCompute = null;
+        WarpKernel = -1; // Trigger reinit
+    }
 
     public static readonly ShaderId MatId = "Mat";
     public static readonly ShaderId SrcATextureSizeId = "SrcATextureSize";
     public static readonly ShaderId SrcATexelSizeId = "SrcATexelSize";
 
-    // For convenience
-    public static readonly int SrcAId = TextureCompute.SrcAId;
-    public static readonly int SrcBId = TextureCompute.SrcBId;
-    public static readonly int ScalarAId = TextureCompute.ScalarAId;
-    public static readonly int ScalarBId = TextureCompute.ScalarBId;
-    public static readonly int DstId = TextureCompute.DstId;
-
-    private static TextureCompute _compute;
-    public static TextureCompute compute =>
-        (_compute = _compute ?? new TextureCompute("Shaders/Blep/TextureGeometry"));
-
     public static int WarpKernel = -1;
     public static int WarpColorBorderKernel = -1;
     public static int WarpTransparentBorderKernel = -1;
-
-    // Reset statics while in the editor and play-mode-options are turned on
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void _Init() {
-        _compute = null;
-        WarpKernel = -1; // Trigger reinit
-    }
 
     // -------------------------------------------------------------------------------
 
@@ -42,6 +34,58 @@ public static class TextureGeometry {
         Color = TextureWrapMode.MirrorOnce + 1,
         Transparent = TextureWrapMode.MirrorOnce + 2
     };
+
+    // -------------------------------------------------------------------------------
+    // Flip, Rotate180
+
+    // When flipping/rotating in place, dispatch on only half the texture and swap pixels
+    private static void _PartialDispatch(string kernelName, Texture src, RenderTexture dst,
+                                         int dispatchWidth, int dispatchHeight) {
+        int kernel = geomCompute.FindKernel(kernelName);
+        geomCompute.SetSize(dst.width, dst.height);
+        geomCompute.shader.SetTexture(kernel, DstId, dst);
+        geomCompute.GetKernelThreadGroups(kernel, dispatchWidth, dispatchHeight, out int x, out int y);
+        geomCompute.Dispatch(kernel, x, y);
+    }
+
+    public static void FlipHorizontal(Texture src, RenderTexture dst) {
+        if (src != dst) {
+            geomCompute.UnaryOp("FlipHorizontal", src, dst);
+        }
+        else {
+            _PartialDispatch("FlipHorizontalI", src, dst, (dst.width + 1) / 2, dst.height);
+        }
+    }
+
+    public static void FlipHorizontal(RenderTexture srcDst) =>
+        FlipHorizontal(srcDst, srcDst);
+
+    public static void FlipVertical(Texture src, RenderTexture dst) {
+        if (src != dst) {
+            geomCompute.UnaryOp("FlipVertical", src, dst);
+        }
+        else {
+            _PartialDispatch("FlipVerticalI", src, dst, dst.width, (dst.height + 1) / 2);
+        }
+    }
+
+    public static void FlipVertical(RenderTexture srcDst) =>
+        FlipVertical(srcDst, srcDst);
+
+    public static void Rotate180(Texture src, RenderTexture dst) {
+        if (src != dst) {
+            geomCompute.UnaryOp("Rotate180", src, dst);
+        }
+        else {
+            _PartialDispatch("Rotate180I", src, dst, dst.width, (dst.height + 1) / 2);
+        }
+    }
+
+    public static void Rotate180(RenderTexture srcDst) =>
+        Rotate180(srcDst, srcDst);
+
+    // -------------------------------------------------------------------------------
+    // Warpo
 
     public static float2x3 GetAffineMatrix(float2 center,
                                            float2 scale,
@@ -86,7 +130,7 @@ public static class TextureGeometry {
     }
 
     // From old Healing/math/MVecMat.cpp
-    public static float4x4 GetWarpCornersMatrix(float2[] src, float2[] dst) {
+    public static float4x4 GetCornerWarpMatrix(float2[] src, float2[] dst) {
         float4x4 warpToSquare   = GetWarpToSquareMatrix(src);
         float4x4 warpFromSquare = GetWarpFromSquareMatrix(dst);
 
@@ -94,8 +138,8 @@ public static class TextureGeometry {
         return mul(warpFromSquare, warpToSquare);
     }
 
-    public static float4x4 GetInverseWarpCornersMatrix(float2[] src, float2[] dst) =>
-        GetWarpCornersMatrix(dst, src);
+    public static float4x4 GetInverseCornerWarpMatrix(float2[] src, float2[] dst) =>
+        GetCornerWarpMatrix(dst, src);
 
     public static float4x4 GetWarpFromSquareMatrix(float2[] dst) {
         float x0 = dst[0].x,	y0 = dst[0].y;
@@ -156,9 +200,9 @@ public static class TextureGeometry {
 
     private static void _InitKernels() {
         if (WarpKernel == -1) {
-            WarpKernel = compute.FindKernel("Warp");
-            WarpColorBorderKernel = compute.FindKernel("WarpColorBorder");
-            WarpTransparentBorderKernel = compute.FindKernel("WarpTransparentBorder");
+            WarpKernel = geomCompute.FindKernel("Warp");
+            WarpColorBorderKernel = geomCompute.FindKernel("WarpColorBorder");
+            WarpTransparentBorderKernel = geomCompute.FindKernel("WarpTransparentBorder");
         }
     }
 
@@ -198,9 +242,9 @@ public static class TextureGeometry {
                             float4? borderColor=null) {
 
         if (isPersective)
-            compute.shader.EnableKeyword("TRANSFORM_PERSPECTIVE");
+            geomCompute.shader.EnableKeyword("TRANSFORM_PERSPECTIVE");
         else
-            compute.shader.DisableKeyword("TRANSFORM_PERSPECTIVE");
+            geomCompute.shader.DisableKeyword("TRANSFORM_PERSPECTIVE");
 
         // Get kernel
         _InitKernels();
@@ -222,10 +266,10 @@ public static class TextureGeometry {
         src.filterMode = filterMode;
         src.wrapMode = (TextureWrapMode) wrapMode;
 
-        var shader = compute.shader;
+        var shader = geomCompute.shader;
 
         // Dst size
-        compute.SetSize(dst.width, dst.height);
+        geomCompute.SetSize(dst.width, dst.height);
 
         // Src Size (need this to handle border correctly)
         shader.SetInts(SrcATextureSizeId, new [] {src.width, src.height});
@@ -236,7 +280,7 @@ public static class TextureGeometry {
         shader.SetVector(ScalarAId, borderColor ?? 0);
         shader.SetMatrix(MatId, invMat);
 
-        compute.Dispatch(kernel);
+        geomCompute.Dispatch(kernel);
 
         // Restore filterMode
         src.filterMode = oldFilterMode;

@@ -1,5 +1,6 @@
 #include "TextureCommon.hlsl"
 
+// Set/unset this keyword to switch between perspective warp and affine warp
 #pragma multi_compile_local __ TRANSFORM_PERSPECTIVE
 
 // Size of the src texture
@@ -11,7 +12,69 @@ float2 SrcATexelSize;
 // Src Sampler
 SamplerState samplerSrcA;
 
+// Warp matrix
 float4x4 Mat;
+
+// -------------------------------------------------------------------------------
+// Flip, Rotate180
+
+// For inline versions, swap pixels
+inline void SwapDst(uint2 xy1, uint2 xy2) {
+    float4 tmp = Dst[xy1];
+    Dst[xy1] = Dst[xy2];
+    Dst[xy2] = tmp;
+}
+
+#pragma kernel FlipHorizontal
+[numthreads(THREADSX, THREADSY, 1)]
+void FlipHorizontal(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        Dst[xy] = SrcA[uint2(TextureSize.x - xy.x - 1, xy.y)];
+    }
+}
+
+#pragma kernel FlipHorizontalI
+[numthreads(THREADSX, THREADSY, 1)]
+void FlipHorizontalI(uint2 xy : SV_DispatchThreadID) {
+    if (all(xy < uint2((TextureSize.x + 1) / 2, TextureSize.y))) {
+        SwapDst(xy, uint2(TextureSize.x - xy.x - 1, xy.y));
+    }
+}
+
+#pragma kernel FlipVertical
+[numthreads(THREADSX, THREADSY, 1)]
+void FlipVertical(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        Dst[xy] = SrcA[uint2(xy.x, TextureSize.y - xy.y - 1)];
+    }
+}
+
+#pragma kernel FlipVerticalI
+[numthreads(THREADSX, THREADSY, 1)]
+void FlipVerticalI(uint2 xy : SV_DispatchThreadID) {
+    if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
+        SwapDst(xy, uint2(xy.x, TextureSize.y - xy.y - 1));
+    }
+}
+
+#pragma kernel Rotate180
+[numthreads(THREADSX, THREADSY, 1)]
+void Rotate180(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        Dst[xy] = SrcA[TextureSize - xy - 1];
+    }
+}
+
+#pragma kernel Rotate180I
+[numthreads(THREADSX, THREADSY, 1)]
+void Rotate180I(uint2 xy : SV_DispatchThreadID) {
+    if (all(xy < uint2(TextureSize.x, (TextureSize.y + 1) / 2))) {
+        SwapDst(xy, TextureSize - xy - 1);
+    }
+}
+
+// -------------------------------------------------------------------------------
+// Warp
 
 inline float2 Transform(float4x4 mat, uint2 inXY) {
   float4 outXYZW =  mul(mat, float4(inXY, 0, 1));

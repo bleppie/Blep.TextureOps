@@ -32,15 +32,7 @@ public class TextureOpsExample : MonoBehaviour {
         yield return null;
     }
 
-    public void FillAlpha(RenderTexture dst) => TextureMath.Set(dst, 1, float4(0, 0, 0, 1));
-
-    public FilterMode filterMode = FilterMode.Point;
-    public TextureGeometry.WrapMode wrapMode = TextureGeometry.WrapMode.Transparent;
-    public float2 center;
-    public float2 scale = 1;
-    public float angle;
-    public float2 translation;
-    public Color borderColor;
+    public void FillAlpha(RenderTexture dst) => TextureOps.Set(dst, 1, float4(0, 0, 0, 1));
 
     public IEnumerator Start() {
         var shortWait = new WaitForSeconds(0.1f);
@@ -54,275 +46,275 @@ public class TextureOpsExample : MonoBehaviour {
         float4 red = float4(1, 0, 0, 1);
 
         // Create b&w mask
-        TextureIP.Swizzle(overlay2, mask, "aaaa");
-        TextureIP.Threshold(mask, 0.5f);
+        TextureOps.Swizzle(overlay2, mask, "aaaa");
+        TextureOps.Threshold(mask, 0.5f);
 
         // Premultiply overlay1 and 2 to clear out cruft where alpha=0
-        // TextureIP.Premultiply(overlay1);
-        // TextureIP.Premultiply(overlay2);
-
+        // TextureOps.Premultiply(overlay1);
+        // TextureOps.Premultiply(overlay2);
 
         yield return Test("Copy", () => {
-            TextureMath.Copy(src, dst);
-        });
-
-        yield return Test("BlendColorBurn", () => {
-            TextureIP.BlendColorBurn(overlay1, src, dst);
-        });
-        yield return Test("BlendLinearBurn", () => {
-            TextureIP.BlendLinearBurn(overlay1, src, dst);
-        });
-        yield return Test("BlendScreen", () => {
-            TextureIP.BlendScreen(overlay1, src, dst);
-        });
-        yield return Test("BlendColorDodge", () => {
-            TextureIP.BlendColorDodge(overlay1, src, dst);
-        });
-        yield return Test("BlendLinearDodge", () => {
-            TextureIP.BlendLinearDodge(overlay1, src, dst);
-        });
-        yield return Test("BlendOverlay", () => {
-            TextureIP.BlendOverlay(overlay1, src, dst);
-        });
-        yield return Test("BlendSoftLight", () => {
-            TextureIP.BlendSoftLight(overlay1, src, dst);
-        });
-        yield return Test("BlendHardLight", () => {
-            TextureIP.BlendHardLight(overlay1, src, dst);
-        });
-        yield return Test("BlendVividLight", () => {
-            TextureIP.BlendVividLight(overlay1, src, dst);
-        });
-        yield return Test("BlendLinearLight", () => {
-            TextureIP.BlendLinearLight(overlay1, src, dst);
-        });
-        yield return Test("BlendPinLight", () => {
-            TextureIP.BlendPinLight(overlay1, src, dst);
+            TextureOps.Copy(src, dst);
         });
 
         //// Math
 
         yield return Test("Copy", () => {
-            TextureMath.Copy(src, dst);
+            TextureOps.Copy(src, dst);
         });
         yield return Test("Clear", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Clear(dst);
+            TextureOps.Copy(src, dst);
+            TextureOps.Clear(dst);
         });
         yield return Test("Set", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Set(dst, red);
+            TextureOps.Copy(src, dst);
+            TextureOps.Set(dst, red);
         });
         yield return Test("Set with Channel Mask", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Set(dst, red, float4(1, 0, 0, 0));
+            TextureOps.Copy(src, dst);
+            TextureOps.Set(dst, red, float4(1, 0, 0, 0));
         });
         yield return Test("Set with Image Mask", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Set(dst, red, mask);
+            TextureOps.Copy(src, dst);
+            TextureOps.Set(dst, red, mask);
         });
         yield return Test("Invert", () => {
-            TextureMath.Invert(src, dst);
+            TextureOps.Invert(src, dst);
             FillAlpha(dst);
         });
         yield return Test("Add Constant", () => {
-            TextureMath.Add(src, dst, oscillate());
+            TextureOps.Add(src, dst, oscillate());
         });
         yield return Test("Add Image", () => {
-            TextureMath.Add(src, overlay2, dst);
+            TextureOps.Add(src, overlay2, dst);
         });
         yield return Test("Add Image Inplace", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Add(src, dst, dst);
+            TextureOps.Copy(src, dst);
+            TextureOps.Add(src, dst, dst);
         });
         yield return Test("Add Image Inplace B", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Add(dst, src, dst);
+            TextureOps.Copy(src, dst);
+            TextureOps.Add(dst, src, dst);
         });
         yield return Test("Multiply Constant", () => {
-            TextureMath.Multiply(src, dst, oscillate01());
+            TextureOps.Multiply(src, dst, oscillate01());
         });
         yield return Test("Multiply Image", () => {
-            TextureMath.Multiply(src, overlay2, dst);
+            TextureOps.Multiply(src, overlay2, dst);
         });
         yield return Test("Multiply Image Inplace", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Multiply(src, dst, dst);
+            TextureOps.Copy(src, dst);
+            TextureOps.Multiply(src, dst, dst);
         });
         yield return Test("Multiply Image Inplace B", () => {
-            TextureMath.Copy(src, dst);
-            TextureMath.Multiply(dst, src, dst);
+            TextureOps.Copy(src, dst);
+            TextureOps.Multiply(dst, src, dst);
         });
         yield return Test("Lerp", () => {
-            TextureMath.Lerp(overlay1, overlay2, dst, oscillate01());
+            TextureOps.Lerp(overlay1, overlay2, dst, oscillate01());
         });
         yield return Test("Clamp", () => {
             var min = oscillate01() * 0.25f;
             var max = 1 - min;
-            TextureMath.Clamp(src, dst, min, max);
+            TextureOps.Clamp(src, dst, min, max);
         });
 
 
         //// IP
 
         yield return Test($"Min", () => {
-            TextureMath.Add(src, dst, oscillate01() * 0.5f);
-            var minColor = TextureIP.MinValue(dst);
+            TextureOps.Add(src, dst, oscillate01() * 0.5f);
+            var minColor = TextureOps.MinValue(dst);
             SetLabel($"Min {minColor:0.00}");
         });
         yield return Test($"Max", () => {
-            TextureMath.Multiply(src, dst, oscillate01());
-            var maxColor = TextureIP.MaxValue(dst);
+            TextureOps.Multiply(src, dst, oscillate01());
+            var maxColor = TextureOps.MaxValue(dst);
             SetLabel($"Max {maxColor:0.00}");
         });
 
         yield return Test("ComposeOver", () => {
-            TextureIP.ComposeOver(overlay1, src, dst);
+            TextureOps.ComposeOver(overlay1, src, dst);
         });
 
         yield return Test("ComposeIn", () => {
-            TextureIP.ComposeIn(overlay1, overlay2, tmp);
-            TextureIP.ComposeOver(tmp, src, dst);
+            TextureOps.ComposeIn(overlay1, overlay2, tmp);
+            TextureOps.ComposeOver(tmp, src, dst);
         });
 
         yield return Test("ComposeOut", () => {
-            TextureIP.ComposeOut(overlay1, overlay2, tmp);
-            TextureIP.ComposeOver(tmp, src, dst);
+            TextureOps.ComposeOut(overlay1, overlay2, tmp);
+            TextureOps.ComposeOver(tmp, src, dst);
         });
 
         yield return Test("ComposeAtop", () => {
-            TextureIP.ComposeAtop(overlay1, overlay2, tmp);
-            TextureIP.ComposeOver(tmp, src, dst);
+            TextureOps.ComposeAtop(overlay1, overlay2, tmp);
+            TextureOps.ComposeOver(tmp, src, dst);
         });
 
         yield return Test("ComposeXor", () => {
-            TextureIP.ComposeXor(overlay1, overlay2, tmp);
-            TextureIP.ComposeOver(tmp, src, dst);
+            TextureOps.ComposeXor(overlay1, overlay2, tmp);
+            TextureOps.ComposeOver(tmp, src, dst);
         });
 
         yield return Test("ComposePlus", () => {
-            TextureIP.ComposePlus(overlay1, overlay2, tmp);
-            TextureIP.ComposeOver(tmp, src, dst);
+            TextureOps.ComposePlus(overlay1, overlay2, tmp);
+            TextureOps.ComposeOver(tmp, src, dst);
         });
 
-        yield return Test("FlipHorizontal", () => {
-            TextureIP.FlipHorizontal(src, dst);
-        });
 
-        yield return Test("FlipVertical", () => {
-            TextureIP.FlipVertical(src, dst);
+        yield return Test("BlendColorBurn", () => {
+            TextureOps.BlendColorBurn(overlay1, src, dst);
         });
-
-        yield return Test("Rotate180", () => {
-            TextureIP.Rotate180(src, dst);
+        yield return Test("BlendLinearBurn", () => {
+            TextureOps.BlendLinearBurn(overlay1, src, dst);
+        });
+        yield return Test("BlendScreen", () => {
+            TextureOps.BlendScreen(overlay1, src, dst);
+        });
+        yield return Test("BlendColorDodge", () => {
+            TextureOps.BlendColorDodge(overlay1, src, dst);
+        });
+        yield return Test("BlendLinearDodge", () => {
+            TextureOps.BlendLinearDodge(overlay1, src, dst);
+        });
+        yield return Test("BlendOverlay", () => {
+            TextureOps.BlendOverlay(overlay1, src, dst);
+        });
+        yield return Test("BlendSoftLight", () => {
+            TextureOps.BlendSoftLight(overlay1, src, dst);
+        });
+        yield return Test("BlendHardLight", () => {
+            TextureOps.BlendHardLight(overlay1, src, dst);
+        });
+        yield return Test("BlendVividLight", () => {
+            TextureOps.BlendVividLight(overlay1, src, dst);
+        });
+        yield return Test("BlendLinearLight", () => {
+            TextureOps.BlendLinearLight(overlay1, src, dst);
+        });
+        yield return Test("BlendPinLight", () => {
+            TextureOps.BlendPinLight(overlay1, src, dst);
         });
 
         yield return Test("ConvertRGB2HSV", () => {
-            TextureIP.ConvertRGB2HSV(src, dst);
+            TextureOps.ConvertRGB2HSV(src, dst);
         });
 
         yield return Test("ConvertHSV2RGB", () => {
-            TextureIP.ConvertRGB2HSV(src, dst);
-            TextureIP.ConvertHSV2RGB(dst);
+            TextureOps.ConvertRGB2HSV(src, dst);
+            TextureOps.ConvertHSV2RGB(dst);
         });
 
         yield return Test("EqualizeHistogram", () => {
-            TextureIP.EqualizeHistogram(src, dst);
+            TextureOps.EqualizeHistogram(src, dst);
         });
 
         yield return Test("Swizzle", () => {
-            TextureIP.Swizzle(src, dst, "bgra");
+            TextureOps.Swizzle(src, dst, "bgra");
         });
 
         yield return Test("Grayscale", () => {
-            TextureIP.Grayscale(src, dst);
+            TextureOps.Grayscale(src, dst);
         });
 
         yield return Test("GrayscaleGamma", () => {
-            TextureIP.GrayscaleGamma(src, dst);
+            TextureOps.GrayscaleGamma(src, dst);
         });
 
         yield return Test("Lookup", () => {
-            TextureIP.Lookup(src, dst, gradient);
+            TextureOps.Lookup(src, dst, gradient);
         });
 
         yield return Test("Contrast", () => {
-            TextureIP.Contrast(src, dst, oscillate());
+            TextureOps.Contrast(src, dst, oscillate());
         });
 
         yield return Test("Threshold", () => {
             var a = oscillate01();
-            TextureIP.Threshold(src, dst, a);
+            TextureOps.Threshold(src, dst, a);
             FillAlpha(dst);
         });
 
         yield return Test("Erode", () => {
-            TextureIP.Erode(mask, dst);
+            TextureOps.Erode(mask, dst);
             for (int i = 0; i < oscillate01() * 5; i++) {
-                TextureIP.Erode(dst, tmp);
-                TextureIP.Erode(tmp, dst);
+                TextureOps.Erode(dst, tmp);
+                TextureOps.Erode(tmp, dst);
             }
             FillAlpha(dst);
         });
 
         yield return Test("Dilate", () => {
-            TextureIP.Dilate(mask, dst);
+            TextureOps.Dilate(mask, dst);
             for (int i = 0; i < oscillate01() * 5; i++) {
-                TextureIP.Dilate(dst, tmp);
-                TextureIP.Dilate(tmp, dst);
+                TextureOps.Dilate(dst, tmp);
+                TextureOps.Dilate(tmp, dst);
             }
             FillAlpha(dst);
         });
 
         yield return Test("Skeletonize", () => {
-            TextureIP.Skeletonize(mask, dst, (int) (oscillate01() * 64));
+            TextureOps.Skeletonize(mask, dst, (int) (oscillate01() * 64));
             FillAlpha(dst);
         });
 
         yield return Test("Sobel", () => {
-            TextureIP.Sobel(mask, dst);
+            TextureOps.Sobel(mask, dst);
             FillAlpha(dst);
         });
 
         yield return Test("Scharr", () => {
-            TextureIP.Scharr(mask, dst);
+            TextureOps.Scharr(mask, dst);
             FillAlpha(dst);
         });
 
         yield return Test("BlurGaussian", () => {
-            TextureIP.BlurGaussian(src, dst, oscillate01() * 25, -1);
+            TextureOps.BlurGaussian(src, dst, oscillate01() * 25, -1);
         });
 
         yield return Test("BlurGaussianRecursive", () => {
-            TextureIP.BlurGaussianRecursive(src, dst, oscillate01() * 10);
+            TextureOps.BlurGaussianRecursive(src, dst, oscillate01() * 10);
         });
 
         yield return Test("Bilateral", () => {
-            TextureIP.Bilateral(src, dst, oscillate01() * 25, -1);
+            TextureOps.Bilateral(src, dst, oscillate01() * 25, -1);
         });
 
         yield return Test("Median3x3", () => {
-            TextureIP.Median3x3(src, dst);
+            TextureOps.Median3x3(src, dst);
         });
 
         yield return Test("Median5x5", () => {
-            TextureIP.Median5x5(src, dst);
+            TextureOps.Median5x5(src, dst);
         });
 
         yield return Test("DistanceTransform", () => {
-            TextureIP.DistanceTransform(mask, dst);
-            TextureMath.Multiply(dst, 0.01f);
-            TextureIP.Swizzle(dst, "rrrr");
+            TextureOps.DistanceTransform(mask, dst);
+            TextureOps.Multiply(dst, 0.01f);
+            TextureOps.Swizzle(dst, "rrrr");
             FillAlpha(dst);
         });
 
 
-        //// Warp
+        //// Geometric
+
+        yield return Test("FlipHorizontal", () => {
+            TextureOps.FlipHorizontal(src, dst);
+        });
+
+        yield return Test("FlipVertical", () => {
+            TextureOps.FlipVertical(src, dst);
+        });
+
+        yield return Test("Rotate180", () => {
+            TextureOps.Rotate180(src, dst);
+        });
 
         yield return Test("WarpAffine", () => {
-            var invMat = TextureGeometry.GetInverseAffineMatrix
+            var invMat = TextureOps.GetInverseAffineMatrix
                 (size * 0.5f, lerp(1, 0.5f, oscillate01()), oscillate01() * PI, 0);
-            TextureGeometry.WarpAffine(src, dst, invMat);
+            TextureOps.WarpAffine(src, dst, invMat);
         });
 
         yield return Test("WarpPerspective", () => {
@@ -335,8 +327,8 @@ public class TextureOpsExample : MonoBehaviour {
                                         float2(width, height),
                                         float2(0, height) };
 
-            var invMat = TextureGeometry.GetInverseWarpCornersMatrix(srcPts, dstPts);
-            TextureGeometry.WarpPerspective(src, dst, invMat);
+            var invMat = TextureOps.GetInverseCornerWarpMatrix(srcPts, dstPts);
+            TextureOps.WarpPerspective(src, dst, invMat);
         });
 
 
@@ -344,7 +336,7 @@ public class TextureOpsExample : MonoBehaviour {
 
         SetLabel("Draw");
 
-        TextureMath.Copy(src, dst);
+        TextureOps.Copy(src, dst);
 
         for (int i = 0; i < 25; i++) {
             var center = float2(width * Random.Range(0.2f, 0.8f), height * Random.Range(0.2f, 0.8f));
@@ -357,19 +349,19 @@ public class TextureOpsExample : MonoBehaviour {
 
             switch (i % 4) {
                 case 0:
-                    TextureDraw.Circle(dst, center, extent.x,
+                    TextureOps.Circle(dst, center, extent.x,
                                        fillColor, outlineWidth, outlineColor);
                     break;
                 case 1:
-                    TextureDraw.Ellipse(dst, center, extent,
+                    TextureOps.Ellipse(dst, center, extent,
                                         fillColor, outlineWidth, outlineColor);
                     break;
                 case 2:
-                    TextureDraw.Rectangle(dst, new Rect(center, extent),
+                    TextureOps.Rectangle(dst, new Rect(center, extent),
                                           fillColor, outlineWidth, outlineColor);
                     break;
                 case 3:
-                    TextureDraw.Line( dst, center - extent/2, center + extent/2,
+                    TextureOps.Line( dst, center - extent/2, center + extent/2,
                                       outlineWidth + Random.Range(1, 10),
                                       fillColor, outlineWidth, outlineColor);
                     break;

@@ -4,66 +4,57 @@ using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using Unity.Mathematics;
 using static Unity.Mathematics.math;
-using Blep;
 
 namespace Blep.TextureOps {
 
-public static class TextureIP {
+public static partial class TextureOps {
 
-    private static TextureCompute _compute;
-    public static TextureCompute compute =>
-        (_compute = _compute ?? new TextureCompute("Shaders/Blep/TextureIP"));
+    private static TextureCompute _ipCompute;
+    public static TextureCompute ipCompute =>
+        (_ipCompute = _ipCompute ?? new TextureCompute("Shaders/Blep/TextureIP"));
 
-    // Reset statics while in the editor and play-mode-options are turned on
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void _Init() { _compute = null; }
-
-    // For convenience
-    public static readonly int SrcAId = TextureCompute.SrcAId;
-    public static readonly int SrcBId = TextureCompute.SrcBId;
-    public static readonly int ScalarAId = TextureCompute.ScalarAId;
-    public static readonly int ScalarBId = TextureCompute.ScalarBId;
-    public static readonly int DstId = TextureCompute.DstId;
+    public static void InitIP() { var compute = ipCompute; }
+    private static void _ResetIP() { _ipCompute = null; }
 
     // -------------------------------------------------------------------------------
     // Color conversion
 
     public static void Grayscale(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Grayscale", "GrayscaleI", src, dst);
+        ipCompute.UnaryOp("Grayscale", "GrayscaleI", src, dst);
 
     public static void Grayscale(RenderTexture srcDst) =>
         Grayscale(srcDst, srcDst);
 
     public static void GrayscaleGamma(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("GrayscaleGamma", "GrayscaleGammaI", src, dst);
+        ipCompute.UnaryOp("GrayscaleGamma", "GrayscaleGammaI", src, dst);
 
     public static void GrayscaleGamma(RenderTexture srcDst) =>
         GrayscaleGamma(srcDst, srcDst);
 
 
     public static void Threshold(Texture src, RenderTexture dst, float4 threshold) =>
-        compute.UnaryOp("Threshold", "ThresholdI", src, dst, threshold);
+        ipCompute.UnaryOp("Threshold", "ThresholdI", src, dst, threshold);
 
     public static void Threshold(RenderTexture srcDst, float4 threshold) =>
         Threshold(srcDst, srcDst, threshold);
 
 
     public static void ConvertRGB2HSV(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("ConvertRGB2HSV", "ConvertRGB2HSVI", src, dst);
+        ipCompute.UnaryOp("ConvertRGB2HSV", "ConvertRGB2HSVI", src, dst);
 
     public static void ConvertRGB2HSV(RenderTexture srcDst) =>
         ConvertRGB2HSV(srcDst, srcDst);
 
 
     public static void ConvertHSV2RGB(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("ConvertHSV2RGB", "ConvertHSV2RGBI", src, dst);
+        ipCompute.UnaryOp("ConvertHSV2RGB", "ConvertHSV2RGBI", src, dst);
 
     public static void ConvertHSV2RGB(RenderTexture srcDst) =>
         ConvertHSV2RGB(srcDst, srcDst);
 
 
     public static void Swizzle(Texture src, RenderTexture dst, uint4 channels) =>
-        compute.UnaryOp("Swizzle", "SwizzleI", src, dst, (float4) channels);
+        ipCompute.UnaryOp("Swizzle", "SwizzleI", src, dst, (float4) channels);
 
     public static void Swizzle(RenderTexture srcDst, uint4 channels) =>
         Swizzle(srcDst, srcDst, channels);
@@ -88,7 +79,7 @@ public static class TextureIP {
 
 
     public static void Lookup(Texture src, RenderTexture dst, Texture pallete) =>
-        compute.BinaryOp("Lookup", "LookupI", src, pallete, dst);
+        ipCompute.BinaryOp("Lookup", "LookupI", src, pallete, dst);
 
     public static void Lookup(RenderTexture srcDst, Texture pallete) =>
         Lookup(srcDst, srcDst, pallete);
@@ -101,61 +92,12 @@ public static class TextureIP {
         // (x - 0.5) * amount + 0.5 == x * amount + 0.5 - 0.5 * amount
         var scale = float4(amount, amount, amount, 1);
         var offset = 0.5f * (1 - scale);
-        TextureMath.MultiplyAdd(src, dst, scale, offset);
+        MultiplyAdd(src, dst, scale, offset);
     }
 
     public static void Contrast(RenderTexture srcDst, float amount) =>
         Contrast(srcDst, srcDst, amount);
 
-
-    // -------------------------------------------------------------------------------
-    // Geometric
-
-    // When flipping/rotating in place, dispatch on only half the texture and swap pixels
-    private static void _PartialDispatch(string kernelName, Texture src, RenderTexture dst,
-                                         int dispatchWidth, int dispatchHeight) {
-        int kernel = compute.FindKernel(kernelName);
-        compute.SetSize(dst.width, dst.height);
-        compute.shader.SetTexture(kernel, DstId, dst);
-        compute.GetKernelThreadGroups(kernel, dispatchWidth, dispatchHeight, out int x, out int y);
-        compute.Dispatch(kernel, x, y);
-    }
-
-    public static void FlipHorizontal(Texture src, RenderTexture dst) {
-        if (src != dst) {
-            compute.UnaryOp("FlipHorizontal", src, dst);
-        }
-        else {
-            _PartialDispatch("FlipHorizontalI", src, dst, (dst.width + 1) / 2, dst.height);
-        }
-    }
-
-    public static void FlipHorizontal(RenderTexture srcDst) =>
-        FlipHorizontal(srcDst, srcDst);
-
-    public static void FlipVertical(Texture src, RenderTexture dst) {
-        if (src != dst) {
-            compute.UnaryOp("FlipVertical", src, dst);
-        }
-        else {
-            _PartialDispatch("FlipVerticalI", src, dst, dst.width, (dst.height + 1) / 2);
-        }
-    }
-
-    public static void FlipVertical(RenderTexture srcDst) =>
-        FlipVertical(srcDst, srcDst);
-
-    public static void Rotate180(Texture src, RenderTexture dst) {
-        if (src != dst) {
-            compute.UnaryOp("Rotate180", src, dst);
-        }
-        else {
-            _PartialDispatch("Rotate180I", src, dst, dst.width, (dst.height + 1) / 2);
-        }
-    }
-
-    public static void Rotate180(RenderTexture srcDst) =>
-        Rotate180(srcDst, srcDst);
 
     // -------------------------------------------------------------------------------
     // Misc/Experimental
@@ -174,22 +116,22 @@ public static class TextureIP {
         TextureTmp tmp1 = _tmp1;
         TextureTmp tmp2 = _tmp2;
 
-        compute.UnaryOp("DistanceTransformInit", src, tmp1);
+        ipCompute.UnaryOp("DistanceTransformInit", src, tmp1);
 
-        int stepKernel = compute.FindKernel("DistanceTransformStep");
+        int stepKernel = ipCompute.FindKernel("DistanceTransformStep");
         int numPasses = (int) Mathf.Ceil(Mathf.Log(Mathf.Max(src.width, src.height), 2));
         int step =  1 << (numPasses - 1);
         for (int i = 0; i < numPasses; i++) {
-            compute.UnaryOp(stepKernel, tmp1, tmp2, new float4(step, 0, 0, 0));
+            ipCompute.UnaryOp(stepKernel, tmp1, tmp2, new float4(step, 0, 0, 0));
             (tmp1, tmp2) = (tmp2, tmp1);
             step >>= 1;
         }
 
         if (! sqrDistance) {
-            compute.UnaryOp("DistanceTransformSqrt", tmp1, tmp2);
+            ipCompute.UnaryOp("DistanceTransformSqrt", tmp1, tmp2);
             (tmp1, tmp2) = (tmp2, tmp1);
         }
-        TextureMath.Copy(tmp1, dst);
+        Copy(tmp1, dst);
     }
 
     // -------------------------------------------------------------------------------
@@ -198,36 +140,36 @@ public static class TextureIP {
     // Test gathering pixels into groupshared memory. This is the same or slower
     // than the simple approach on OSX/Metal, See comments in TextureIP.compute
     // public static void ErodeGather(Texture src, RenderTexture dst) {
-    //     compute.SetSize(src.width, src.height);
-    //     var kernel = compute.FindKernel("ErodeGather");
+    //     ipCompute.SetSize(src.width, src.height);
+    //     var kernel = ipCompute.FindKernel("ErodeGather");
     //     // Overlap tiles by 1 pixel each (2 pixels overlap), so process in groups of THREADS-2
-    //     compute.GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
+    //     ipCompute.GetKernelThreadGroupSizes(kernel, out int xs, out int ys);
     //     xs -= 2;
     //     ys -= 2;
     //     int x = (src.width  + xs - 1) / xs; // Round up
     //     int y = (src.height + ys - 1) / ys; // Round up
-    //     compute.shader.SetTexture(kernel, SrcAId, src);
-    //     compute.shader.SetTexture(kernel, DstId, dst);
-    //     compute.Dispatch(kernel, x, y);
+    //     ipCompute.shader.SetTexture(kernel, SrcAId, src);
+    //     ipCompute.shader.SetTexture(kernel, DstId, dst);
+    //     ipCompute.Dispatch(kernel, x, y);
     // }
 
     public static void Erode(Texture src, RenderTexture dst) {
         Assert.AreNotEqual(src, dst, "Erode cannot work in place");
-        compute.UnaryOp("Erode", src, dst);
+        ipCompute.UnaryOp("Erode", src, dst);
     }
 
     public static void Dilate(Texture src, RenderTexture dst) {
         Assert.AreNotEqual(src, dst, "Dilate cannot work in place");
-        compute.UnaryOp("Dilate", src, dst);
+        ipCompute.UnaryOp("Dilate", src, dst);
     }
 
     public static void Skeletonize(Texture src, RenderTexture dst, int iterations) {
         using var tmp = new TextureTmp(src);
 
-        int kernel = compute.FindKernel("Skeletonize");
+        int kernel = ipCompute.FindKernel("Skeletonize");
         for (int i = 0; i < iterations; i++) {
-            compute.UnaryOp(kernel, i == 0 ? src : dst, tmp, 0);
-            compute.UnaryOp(kernel, tmp, dst, 1);
+            ipCompute.UnaryOp(kernel, i == 0 ? src : dst, tmp, 0);
+            ipCompute.UnaryOp(kernel, tmp, dst, 1);
         }
     }
 
@@ -236,12 +178,12 @@ public static class TextureIP {
 
     public static void Sobel(Texture src, RenderTexture dst) {
         Assert.AreNotEqual(src, dst, "Sobel cannot work in place");
-        compute.UnaryOp("Sobel", src, dst);
+        ipCompute.UnaryOp("Sobel", src, dst);
     }
 
     public static void Scharr(Texture src, RenderTexture dst) {
         Assert.AreNotEqual(src, dst, "Scharr cannot work in place");
-        compute.UnaryOp("Scharr", src, dst);
+        ipCompute.UnaryOp("Scharr", src, dst);
     }
 
     // -------------------------------------------------------------------------------
@@ -249,12 +191,12 @@ public static class TextureIP {
 
     public static void Median3x3(Texture src, RenderTexture dst) {
         Assert.AreNotEqual(src, dst, "Median cannot work in place");
-        compute.UnaryOp("Median3x3", src, dst);
+        ipCompute.UnaryOp("Median3x3", src, dst);
     }
 
     public static void Median5x5(Texture src, RenderTexture dst) {
         Assert.AreNotEqual(src, dst, "Median cannot work in place");
-        compute.UnaryOp("Median5x5", src, dst);
+        ipCompute.UnaryOp("Median5x5", src, dst);
     }
 
     private static float4 _CalculateGaussianCoeffs(float size, float sigma) {
@@ -276,7 +218,7 @@ public static class TextureIP {
                                  float size, float sigma=-1, float colorSigma=0.1f) {
         Assert.AreNotEqual(src, dst, "Bilateral cannot work in place");
         float4 incGauss = _CalculateGaussianCoeffs(size, sigma);
-        compute.UnaryOp("Bilateral", src, dst, incGauss,
+        ipCompute.UnaryOp("Bilateral", src, dst, incGauss,
                         float4(-0.5f / (colorSigma * colorSigma), 0, 0, 0));
     }
 
@@ -285,12 +227,12 @@ public static class TextureIP {
         using var tmp = new TextureTmp(dst);
 
         float4 incGauss = _CalculateGaussianCoeffs(size, sigma);
-        int kernel = compute.FindKernel("BlurGaussian");
+        int kernel = ipCompute.FindKernel("BlurGaussian");
 
         // Horizontal
-        compute.UnaryOp(kernel, src, tmp, incGauss, float4(1, 0, 0, 0));
+        ipCompute.UnaryOp(kernel, src, tmp, incGauss, float4(1, 0, 0, 0));
         // Vertical
-        compute.UnaryOp(kernel, tmp, dst, incGauss, float4(0, 1, 0, 0));
+        ipCompute.UnaryOp(kernel, tmp, dst, incGauss, float4(0, 1, 0, 0));
     }
 
     public static void BlurGaussian(RenderTexture srcDst,
@@ -302,16 +244,16 @@ public static class TextureIP {
         // Tmp has transposed aspect ratio (height x width rather than width x height)
         using var tmp = new TextureTmp(dst.height, dst.width, dst.format);
 
-        var shader = compute.shader;
-        var fwdKernelI = compute.FindKernel("RecursiveConvolveFwdI"); // In-place fwd kernel
-        var fwdKernel = src == dst ? fwdKernelI : compute.FindKernel("RecursiveConvolveFwd");
-        var bakKernel = compute.FindKernel("RecursiveConvolveBak");
+        var shader = ipCompute.shader;
+        var fwdKernelI = ipCompute.FindKernel("RecursiveConvolveFwdI"); // In-place fwd kernel
+        var fwdKernel = src == dst ? fwdKernelI : ipCompute.FindKernel("RecursiveConvolveFwd");
+        var bakKernel = ipCompute.FindKernel("RecursiveConvolveBak");
 
         shader.SetVector(ScalarAId, coeffs);
 
         // Asssume fwdKernel same as bakKernel
         int xs, ys;
-        compute.GetKernelThreadGroupSizes(fwdKernel, out xs, out ys);
+        ipCompute.GetKernelThreadGroupSizes(fwdKernel, out xs, out ys);
         int threadsX = (src.height + xs - 1) / xs;
         int threadsY = (src.width  + ys - 1) / ys;
 
@@ -322,29 +264,29 @@ public static class TextureIP {
         // transpose, amd repeat. The transposition step is folded into the
         // backwards convolution (see the compute shader).
 
-        compute.SetSize(src.width, src.height);
+        ipCompute.SetSize(src.width, src.height);
 
         // Convolve forward src -> dst
         shader.SetTexture(fwdKernel, SrcAId, src);
         shader.SetTexture(fwdKernel, DstId, dst);
-        compute.Dispatch(fwdKernel, threadsX, 1);
+        ipCompute.Dispatch(fwdKernel, threadsX, 1);
 
         // Convolve backward and transpose dst -> tmp
         shader.SetTexture(bakKernel, SrcAId, dst);
         shader.SetTexture(bakKernel, DstId, tmp);
-        compute.Dispatch(bakKernel, threadsX, 1);
+        ipCompute.Dispatch(bakKernel, threadsX, 1);
 
-        compute.SetSize(src.height, src.width);
+        ipCompute.SetSize(src.height, src.width);
 
         // Convolve forward tmp -> tmp
         shader.SetTexture(fwdKernelI, SrcAId, tmp);
         shader.SetTexture(fwdKernelI, DstId, tmp);
-        compute.Dispatch(fwdKernelI, threadsY, 1);
+        ipCompute.Dispatch(fwdKernelI, threadsY, 1);
 
         // Convolve backward and transpose tmp -> dst
         shader.SetTexture(bakKernel, SrcAId, tmp);
         shader.SetTexture(bakKernel, DstId, dst);
-        compute.Dispatch(bakKernel, threadsY, 1);
+        ipCompute.Dispatch(bakKernel, threadsY, 1);
     }
 
     // https://www.researchgate.net/publication/222453003_Recursive_implementation_of_the_Gaussian_filter
@@ -388,19 +330,19 @@ public static class TextureIP {
 
         histogramBuffer = histogramBuffer ?? new ComputeBuffer(256, sizeof(uint) * 4);
 
-        var shader = compute.shader;
-        compute.SetSize(src.width, src.height);
+        var shader = ipCompute.shader;
+        ipCompute.SetSize(src.width, src.height);
 
         // Clear the histogram
         int clearKernel = shader.FindKernel("HistogramEqClear");
         shader.SetBuffer(clearKernel, "Histogram", histogramBuffer);
-        compute.Dispatch(clearKernel, 1, 1);
+        ipCompute.Dispatch(clearKernel, 1, 1);
 
         // Create the histogram
         int gatherKernel = shader.FindKernel("HistogramEqGather");
         shader.SetBuffer(gatherKernel, "Histogram", histogramBuffer);
         shader.SetTexture(gatherKernel, SrcAId, src);
-        compute.Dispatch(gatherKernel);
+        ipCompute.Dispatch(gatherKernel);
 
         return histogramBuffer;
     }
@@ -428,20 +370,20 @@ public static class TextureIP {
 
         var histogramBuffer = GetHistogramBuffer(src);
 
-        var shader = compute.shader;
-        compute.SetSize(src.width, src.height);
+        var shader = ipCompute.shader;
+        ipCompute.SetSize(src.width, src.height);
 
         // Sum the histogram
         int accumulateKernel = shader.FindKernel("HistogramEqAccumulate");
         shader.SetBuffer(accumulateKernel, "Histogram", histogramBuffer);
-        compute.Dispatch(accumulateKernel, 1, 1);
+        ipCompute.Dispatch(accumulateKernel, 1, 1);
 
         // Remap input to output
         int mapKernel = shader.FindKernel("HistogramEqMap");
         shader.SetBuffer(mapKernel, "Histogram", histogramBuffer);
         shader.SetTexture(mapKernel, SrcAId, src);
         shader.SetTexture(mapKernel, DstId, dst);
-        compute.Dispatch(mapKernel);
+        ipCompute.Dispatch(mapKernel);
 
         histogramBuffer.Release();
     }
@@ -458,11 +400,11 @@ public static class TextureIP {
     public static float4 Reduce(string kernelName, Texture src) {
         using var tmp = new TextureTmp(src, forceFloatFormat: true);
 
-        int kernel = compute.FindKernel(kernelName);
-        var shader = compute.shader;
+        int kernel = ipCompute.FindKernel(kernelName);
+        var shader = ipCompute.shader;
 
         // The kernels work in place, so copy src to tmp
-        TextureMath.Copy(src, tmp);
+        Copy(src, tmp);
         shader.SetTexture(kernel, DstId, tmp);
 
         int width = src.width;
@@ -472,9 +414,9 @@ public static class TextureIP {
             int halfWidth  = (width  + 1) >> 1;
             int halfHeight = (height + 1) >> 1;
 
-            compute.SetSize(width, height);
-            compute.GetKernelThreadGroups(kernel, halfWidth, halfHeight, out int xg, out int yg);
-            compute.Dispatch(kernel, xg, yg);
+            ipCompute.SetSize(width, height);
+            ipCompute.GetKernelThreadGroups(kernel, halfWidth, halfHeight, out int xg, out int yg);
+            ipCompute.Dispatch(kernel, xg, yg);
             width  = halfWidth;
             height = halfHeight;
         }
@@ -514,7 +456,7 @@ public static class TextureIP {
     // Composition
 
     public static void Premultiply(Texture src, RenderTexture dst) =>
-        compute.UnaryOp("Premultiply", "PremultiplyI", src, dst);
+        ipCompute.UnaryOp("Premultiply", "PremultiplyI", src, dst);
 
     public static void Premultiply(RenderTexture srcDst) =>
         Premultiply(srcDst, srcDst);
@@ -524,41 +466,41 @@ public static class TextureIP {
     // αA+(1-αA)* αB
     // A occludes B
     public static void ComposeOver(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("ComposeOver", srcA, srcB, dst);
+        ipCompute.BinaryOp("ComposeOver", srcA, srcB, dst);
 
     // IN
     // αA*A*αB
     // αA*αB
     // A within B. B acts as a matte for A. A shows only where B is visible.
     public static void ComposeIn(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("ComposeIn", srcA, srcB, dst);
+        ipCompute.BinaryOp("ComposeIn", srcA, srcB, dst);
 
     // OUT
     // αA*A*(1-αB)
     // αA*(1-αB)
     // A outside B. NOT-B acts as a matte for A. A shows only where B is not visible.
     public static void ComposeOut(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("ComposeOut", srcA, srcB, dst);
+        ipCompute.BinaryOp("ComposeOut", srcA, srcB, dst);
 
     // ATOP
     // αA*A*αB+(1- αA)* αB*B
     // αA*αB+(1- αA)* αB
     public static void ComposeAtop(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("ComposeAtop", srcA, srcB, dst);
+        ipCompute.BinaryOp("ComposeAtop", srcA, srcB, dst);
 
     // XOR
     // αA*A*(1-αB)+(1- αA)* αB*B = lerp(aB * B, A * (1 - aB), aA) = lerp(aA * A, (1-aA)*B, aB)
     // αA*(1-αB)+(1- αA)* αB =
     // Combination of (A OUT B) and (B OUT A). A and B mutually exclude each other.
     public static void ComposeXor(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("ComposeXor", srcA, srcB, dst);
+        ipCompute.BinaryOp("ComposeXor", srcA, srcB, dst);
 
     // PLUS
     // αA*A+αB*B
     // αA+αB
     // Blend without precedence
     public static void ComposePlus(Texture srcA, Texture srcB, RenderTexture dst) =>
-        compute.BinaryOp("ComposePlus", srcA, srcB, dst);
+        ipCompute.BinaryOp("ComposePlus", srcA, srcB, dst);
 
     // -------------------------------------------------------------------------------
     // Blend
@@ -567,47 +509,47 @@ public static class TextureIP {
 
     public static void BlendColorBurn(Texture srcBlend, Texture srcBase,
                                       RenderTexture dst) =>
-        compute.BinaryOp("BlendColorBurn", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendColorBurn", srcBase, srcBlend, dst);
 
     public static void BlendLinearBurn(Texture srcBlend, Texture srcBase,
                                        RenderTexture dst) =>
-        compute.BinaryOp("BlendLinearBurn", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendLinearBurn", srcBase, srcBlend, dst);
 
     public static void BlendScreen(Texture srcBlend, Texture srcBase,
                                    RenderTexture dst) =>
-        compute.BinaryOp("BlendScreen", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendScreen", srcBase, srcBlend, dst);
 
     public static void BlendColorDodge(Texture srcBlend, Texture srcBase,
                                        RenderTexture dst) =>
-        compute.BinaryOp("BlendColorDodge", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendColorDodge", srcBase, srcBlend, dst);
 
     public static void BlendLinearDodge(Texture srcBlend, Texture srcBase,
                                         RenderTexture dst) =>
-        compute.BinaryOp("BlendLinearDodge", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendLinearDodge", srcBase, srcBlend, dst);
 
     public static void BlendOverlay(Texture srcBlend, Texture srcBase,
                                     RenderTexture dst) =>
-        compute.BinaryOp("BlendOverlay", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendOverlay", srcBase, srcBlend, dst);
 
     public static void BlendSoftLight(Texture srcBlend, Texture srcBase,
                                       RenderTexture dst) =>
-        compute.BinaryOp("BlendSoftLight", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendSoftLight", srcBase, srcBlend, dst);
 
     public static void BlendHardLight(Texture srcBlend, Texture srcBase,
                                       RenderTexture dst) =>
-        compute.BinaryOp("BlendHardLight", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendHardLight", srcBase, srcBlend, dst);
 
     public static void BlendVividLight(Texture srcBlend, Texture srcBase,
                                        RenderTexture dst) =>
-        compute.BinaryOp("BlendVividLight", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendVividLight", srcBase, srcBlend, dst);
 
     public static void BlendLinearLight(Texture srcBlend, Texture srcBase,
                                         RenderTexture dst) =>
-        compute.BinaryOp("BlendLinearLight", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendLinearLight", srcBase, srcBlend, dst);
 
     public static void BlendPinLight(Texture srcBlend, Texture srcBase,
                                      RenderTexture dst) =>
-        compute.BinaryOp("BlendPinLight", srcBase, srcBlend, dst);
+        ipCompute.BinaryOp("BlendPinLight", srcBase, srcBlend, dst);
 
 }
 

@@ -10,7 +10,7 @@ using Debug = UnityEngine.Debug;
 #if ! UNITY_6000
 using GraphicsFormatUsage = UnityEngine.Experimental.Rendering.FormatUsage;
 #endif
-
+using TextureMath = Blep.TextureOps.TextureOps;
 namespace Blep.TextureOps {
 
 public class TextureTest : MonoBehaviour {
@@ -57,7 +57,7 @@ public class TextureTest : MonoBehaviour {
         // TestGatherSpeed();
 
         while (true) {
-            TextureIP.Bilateral(srcIn, dstOut, size, -1, rangeSigma);
+            TextureOps.Bilateral(srcIn, dstOut, size, -1, rangeSigma);
             yield return null;
         }
 
@@ -79,8 +79,8 @@ public class TextureTest : MonoBehaviour {
             var pos = new Vector2(Random.Range(0, imageSize.x),
                                   Random.Range(0, imageSize.y));
 //            TextureDraw.Circle(_dst, new Vector4(0.3f, 0.8f, 0.5f, 1.0f), pos, 2, 0);
-            var min = TextureIP.MinValue(_dst);
-            var max = TextureIP.MaxValue(_dst);
+            var min = TextureOps.MinValue(_dst);
+            var max = TextureOps.MaxValue(_dst);
             if (min.x != 0.3f) Debug.Log($"Bad min {min} {pos}");
             if (max.y != 0.8f) Debug.Log($"Bad max {max} {pos}");
         }
@@ -117,8 +117,8 @@ public class TextureTest : MonoBehaviour {
     }
 
     public void TestGatherSpeed() {
-        _Measure("Erode Normal", () => { TextureIP.Erode(_src, _dst); });
-        // _Measure("Erode Gather", () => { TextureIP.ErodeGather(_src, _dst); });
+        _Measure("Erode Normal", () => { TextureOps.Erode(_src, _dst); });
+        // _Measure("Erode Gather", () => { TextureOps.ErodeGather(_src, _dst); });
     }
     public void TestAccessSpeed() {
         _MeasureKernel("TestIndex");
