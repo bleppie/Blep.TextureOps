@@ -33,6 +33,10 @@ inline int2 ClampToRange(int2 xy) {
 // Returns the uv coordinates corresponding to the given integer xy coordinates.
 // xy coordinates are in the range (0, size-1), but they correspond to the
 // center of pixels, so the actual mapping is from (-0.5, size-0.5) to (0, 1)
+inline float2 GetUV(uint2 xy, float2 texelSize) {
+  return (xy + 0.5f) * texelSize;
+}
+
 inline float2 GetUV(uint2 xy) {
   return (xy + 0.5f) * TexelSize;
 }

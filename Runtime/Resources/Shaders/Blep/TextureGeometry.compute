@@ -1,0 +1,79 @@
+#include "TextureCommon.hlsl"
+
+#pragma multi_compile_local __ TRANSFORM_PERSPECTIVE
+
+// Size of the src texture
+uint2 SrcATextureSize;
+
+// Size of each sec texel (1 / size)
+float2 SrcATexelSize;
+
+// Src Sampler
+SamplerState samplerSrcA;
+
+float4x4 Mat;
+
+inline float2 Transform(float4x4 mat, uint2 inXY) {
+  float4 outXYZW =  mul(mat, float4(inXY, 0, 1));
+  float2 outXY = outXYZW.xy;
+
+  #if TRANSFORM_PERSPECTIVE
+  float outW = outXYZW.w;
+  outXY = (outW == 0 ? 0 : outXY / outW);
+  #endif
+
+  return outXY;
+}
+
+inline float4 SampleSrcA(float2 xy) {
+  float2 uv = (xy + 0.5f) * SrcATexelSize;
+  return SrcA.SampleLevel(samplerSrcA, uv, 0);
+}
+
+inline float GetBorderAlpha(float2 xy, float2 textureSize) {
+  float2 center = SrcATextureSize * 0.5f;
+  float2 deltaToBorder = abs(xy - center) - center;
+  float distanceToBorder = max(deltaToBorder.x, deltaToBorder.y);
+  return saturate(distanceToBorder);
+}
+
+#pragma kernel Warp
+[numthreads(THREADSX, THREADSY, 1)]
+void Warp(uint2 xy : SV_DispatchThreadID) {
+  if (InRange(xy)) {
+      float2 srcXY = Transform(Mat, xy);
+      float4 pixel = SampleSrcA(srcXY);
+
+      Dst[xy] = pixel;
+  }
+  }
+
+#pragma kernel WarpTransparentBorder
+[numthreads(THREADSX, THREADSY, 1)]
+void WarpTransparentBorder(uint2 xy : SV_DispatchThreadID) {
+    if (InRange(xy)) {
+        float2 srcXY = Transform(Mat, xy);
+        float4 pixel = SampleSrcA(srcXY);
+
+        float4 outsideColor = float4(pixel.xyz, 0);
+
+        float alpha = GetBorderAlpha(srcXY, SrcATextureSize);
+        Dst[xy] = lerp(pixel, outsideColor, alpha);
+    }
+}
+
+#pragma kernel WarpColorBorder
+[numthreads(THREADSX, THREADSY, 1)]
+void WarpColorBorder(uint2 xy : SV_DispatchThreadID) {
+  if (InRange(xy)) {
+      float2 srcXY = Transform(Mat, xy);
+      float4 pixel = SampleSrcA(srcXY);
+
+      // Strange things happen if oursideColor.a < 1
+      float4 outsideColor = ScalarA;
+
+      float alpha = GetBorderAlpha(srcXY, SrcATextureSize);
+      Dst[xy] = lerp(pixel, outsideColor, alpha);
+  }
+}
+

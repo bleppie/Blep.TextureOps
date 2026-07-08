@@ -34,12 +34,21 @@ public class TextureOpsExample : MonoBehaviour {
 
     public void FillAlpha(RenderTexture dst) => TextureMath.Set(dst, 1, float4(0, 0, 0, 1));
 
+    public FilterMode filterMode = FilterMode.Point;
+    public TextureGeometry.WrapMode wrapMode = TextureGeometry.WrapMode.Transparent;
+    public float2 center;
+    public float2 scale = 1;
+    public float angle;
+    public float2 translation;
+    public Color borderColor;
+
     public IEnumerator Start() {
         var shortWait = new WaitForSeconds(0.1f);
         var wait = new WaitForSeconds(0.5f);
 
         float width = src.width;
         float height = src.height;
+        float2 size = float2(width, height);
         var tmp = TextureCompute.GetTemporary(dst);
         var mask = TextureCompute.GetTemporary(dst);
         float4 red = float4(1, 0, 0, 1);
@@ -51,6 +60,7 @@ public class TextureOpsExample : MonoBehaviour {
         // Premultiply overlay1 and 2 to clear out cruft where alpha=0
         // TextureIP.Premultiply(overlay1);
         // TextureIP.Premultiply(overlay2);
+
 
         yield return Test("Copy", () => {
             TextureMath.Copy(src, dst);
@@ -307,6 +317,29 @@ public class TextureOpsExample : MonoBehaviour {
         });
 
 
+        //// Warp
+
+        yield return Test("WarpAffine", () => {
+            var invMat = TextureGeometry.GetInverseAffineMatrix
+                (size * 0.5f, lerp(1, 0.5f, oscillate01()), oscillate01() * PI, 0);
+            TextureGeometry.WarpAffine(src, dst, invMat);
+        });
+
+        yield return Test("WarpPerspective", () => {
+            var srcPts = new float2[] { float2(0, 0),
+                                        float2(width, 0),
+                                        float2(width, height),
+                                        float2(0, height) };
+            var dstPts = new float2[] { oscillate01() * size * 0.5f,
+                                        float2(width, 0),
+                                        float2(width, height),
+                                        float2(0, height) };
+
+            var invMat = TextureGeometry.GetInverseWarpCornersMatrix(srcPts, dstPts);
+            TextureGeometry.WarpPerspective(src, dst, invMat);
+        });
+
+
         //// Draw
 
         SetLabel("Draw");
@@ -315,7 +348,7 @@ public class TextureOpsExample : MonoBehaviour {
 
         for (int i = 0; i < 25; i++) {
             var center = float2(width * Random.Range(0.2f, 0.8f), height * Random.Range(0.2f, 0.8f));
-            var size   = float2(width * Random.Range(0.1f, 0.3f), height * Random.Range(0.1f, 0.3f));
+            var extent = float2(width * Random.Range(0.1f, 0.3f), height * Random.Range(0.1f, 0.3f));
             var hasOutline = Random.value > 0.5f;
             var hasFill = ! hasOutline || Random.value > 0.5f;
             var fillColor = hasFill ? Random.ColorHSV() : Color.clear;
@@ -324,19 +357,19 @@ public class TextureOpsExample : MonoBehaviour {
 
             switch (i % 4) {
                 case 0:
-                    TextureDraw.Circle(dst, center, size.x,
+                    TextureDraw.Circle(dst, center, extent.x,
                                        fillColor, outlineWidth, outlineColor);
                     break;
                 case 1:
-                    TextureDraw.Ellipse(dst, center, size,
+                    TextureDraw.Ellipse(dst, center, extent,
                                         fillColor, outlineWidth, outlineColor);
                     break;
                 case 2:
-                    TextureDraw.Rectangle(dst, new Rect(center, size),
+                    TextureDraw.Rectangle(dst, new Rect(center, extent),
                                           fillColor, outlineWidth, outlineColor);
                     break;
                 case 3:
-                    TextureDraw.Line( dst, center - size/2, center + size/2,
+                    TextureDraw.Line( dst, center - extent/2, center + extent/2,
                                       outlineWidth + Random.Range(1, 10),
                                       fillColor, outlineWidth, outlineColor);
                     break;
